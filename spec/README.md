@@ -1,10 +1,14 @@
 # Protocol Specifications
 
 > **Status: not yet specified.** This directory holds no protocol
-> definitions yet. No fields, schemas or encodings are defined, and no
-> placeholder schemas are provided on purpose. Specification work begins
-> only after Phase 0 is reviewed and a specification phase is explicitly
-> authorized.
+> definitions yet. No fields or schemas are defined, and no placeholder
+> schemas are provided on purpose.
+>
+> Shared protocol foundations (encoding, versioning, extensions,
+> canonicalization and integrity, and use of existing standards) are
+> proposed in [ADR 0002](../docs/adr/0002-shared-protocol-foundations.md),
+> whose status is **Proposed**. Until ADR 0002 is accepted, those questions
+> remain open, and field-level specification remains blocked.
 
 Proof Runtime defines four core protocols. Their existence and purpose are
 frozen by [ADR 0001](../docs/adr/0001-architecture-freeze.md) (status:
@@ -49,15 +53,20 @@ In addition, every protocol must preserve the
 
 The questions below must be resolved before field-level specification of
 the listed protocol begins. Full descriptions are in
-[ADR 0001 § Open questions](../docs/adr/0001-architecture-freeze.md#open-questions).
+[ADR 0001 § Open questions](../docs/adr/0001-architecture-freeze.md#open-questions)
+(OQ-1 to OQ-25) and
+[ADR 0002 § New open questions](../docs/adr/0002-shared-protocol-foundations.md#new-open-questions)
+(OQ-26 to OQ-29). The proposed
+[dependency map](../docs/protocols/dependency-map.md) explains each
+dependency and suggests a specification order.
 
-| Protocol            | Blocking questions                             |
-| ------------------- | ---------------------------------------------- |
-| All                 | OQ-1, OQ-2, OQ-3, OQ-4, OQ-23                  |
-| Task Capsule        | OQ-5, OQ-13, OQ-14, OQ-15, OQ-16               |
-| Action IR           | OQ-5, OQ-8, OQ-9, OQ-10, OQ-11, OQ-13          |
-| Capability Manifest | OQ-5, OQ-6, OQ-7, OQ-8, OQ-9, OQ-10            |
-| Evidence Receipt    | OQ-5, OQ-13, OQ-17, OQ-18, OQ-19, OQ-20, OQ-21 |
+| Protocol            | Blocking questions                                           |
+| ------------------- | ------------------------------------------------------------ |
+| All                 | OQ-1, OQ-2, OQ-3, OQ-4, OQ-23 (proposed in ADR 0002); OQ-26, OQ-27 |
+| Task Capsule        | OQ-5, OQ-13, OQ-14, OQ-15, OQ-16                             |
+| Action IR           | OQ-5, OQ-8, OQ-9, OQ-10, OQ-11, OQ-13, OQ-29                 |
+| Capability Manifest | OQ-5, OQ-6, OQ-7, OQ-8, OQ-9, OQ-10                          |
+| Evidence Receipt    | OQ-5, OQ-13, OQ-17, OQ-18, OQ-19, OQ-20, OQ-21, OQ-28, OQ-29 |
 
 Why each dependency exists:
 
@@ -83,6 +92,6 @@ Why each dependency exists:
 
 When specification is authorized, each protocol is expected to get its own
 subdirectory (for example, `spec/task-capsule/`). Each one would contain a
-normative specification document and, once an encoding is chosen (OQ-1),
-machine-readable schemas and conformance examples. This layout is a proposal
+normative specification document and, once ADR 0002 is accepted, JSON
+Schema 2020-12 schemas and conformance examples. This layout is a proposal
 and can change.

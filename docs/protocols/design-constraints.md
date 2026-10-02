@@ -1,0 +1,113 @@
+# Shared Protocol Design Constraints
+
+> **Status: Proposed**, as part of
+> [ADR 0002](../adr/0002-shared-protocol-foundations.md). These constraints
+> bind all four core protocols once ADR 0002 is accepted. They restate no
+> field definitions; none exist yet.
+
+Each constraint applies to Task Capsule, Action IR, Capability Manifest and
+Evidence Receipt alike. Where a constraint follows from an
+[invariant](../invariants.md) or a decision in ADR 0002, the source is
+named. A protocol specification that cannot meet a constraint needs a new
+ADR. It must not quietly deviate.
+
+## Structure and processing
+
+- **C1. Self-describing documents.** Every document identifies its type and
+  protocol version (D2.2), and lists its critical extensions (D3.4). A
+  consumer can decide whether it may process a document before it
+  interprets any content.
+- **C2. Fail closed.** A consumer rejects a document, and records why, when
+  any of the following holds:
+  - it is not valid under the JSON profile (D1.2),
+  - it exceeds the resource limits (D1.4),
+  - its major version is unknown (D2.3),
+  - it lists a critical extension the consumer does not understand (D3.4),
+  - a digest it relies on does not match, or uses no acceptable algorithm
+    (D4.4).
+
+  A rejected document is never partially processed for an authorization,
+  verification or execution decision.
+- **C3. Monotonicity.** Ignoring anything a consumer is permitted to ignore
+  can only make its result the same or stricter (D2.5, D3.5).
+- **C4. Immutability.** A document referenced by digest is never modified.
+  Corrections, migrations and redactions are new documents that reference
+  their predecessors (D2.7).
+- **C5. Digest references.** Cross-document and artifact references carry
+  content digests (D4.3). A reference that cannot be resolved, or whose
+  digest does not match, makes the referring claim unverifiable. It is not
+  silently skipped.
+
+## Authority and trust
+
+- **C6. Proposal is not authority** (I1). An Action IR document describes a
+  proposed action. Nothing in it, including fields copied from a policy or
+  an approval, authorizes execution. Authorization exists only as a
+  CONTROL-plane decision. That decision is a separate record, and it refers
+  to the proposal by digest.
+- **C7. Declaration is not authorization.** A Capability Manifest states
+  which capabilities an actor holds and their scope. It is an input to
+  CONTROL-plane decisions, and four things must be kept apart:
+  - **Declaration:** what the Capability Manifest says.
+  - **Authorization:** a CONTROL decision that a specific action is
+    permitted.
+  - **Policy decision:** the policy evaluation that produced that
+    authorization.
+  - **Enforcement:** whether anything actually prevented an unauthorized
+    action, which depends on the integration grade.
+
+  A protocol document must never let one stand in for another.
+- **C8. Declaration is not enforcement** (I5). A Capability Manifest, or
+  any capability or support statement from a host, does not show that the
+  host enforces it. Enforcement claims are recorded with the integration
+  grade and the actual enforcement boundary (ADR 0001 §4).
+- **C9. State is not authority** (I3). A Task Capsule's state, context and
+  memory never grant authority, even when they reference capabilities or
+  past approvals. A reference is a pointer that CONTROL re-evaluates; it is
+  not a grant.
+- **C10. Claims, observations and enforcement stay distinct** (I2, I4, I5).
+  Evidence Receipts must distinguish at least three kinds of fact:
+  - **Observed:** recorded by the runtime from what it could itself see.
+  - **Host-attested:** reported by a host or tool and not independently
+    observed.
+  - **Runtime-enforced:** something the runtime itself controlled, inside
+    the enforcement boundary of the recorded integration grade.
+
+  Model claims are a separate category from all three. Hashing or signing
+  never moves a fact between these categories (D4.6). The exact vocabulary
+  and its encoding are open (OQ-17, OQ-21).
+- **C11. Integrity is not correctness** (I2, I6). A matching digest or a
+  valid signature shows that bytes are unchanged, or that a key holder
+  endorsed them (D4.1). It never shows that the content is true, that the
+  signer was authorized, or that an action executed as described.
+
+## Data hygiene
+
+- **C12. No raw secrets.** No protocol document contains a raw secret value
+  in any core member or extension. This includes credentials, tokens,
+  private keys and session cookies.
+  - Secrets are referenced by opaque handles whose design is OQ-13.
+  - Producers must redact secrets before emitting a document. Consumers
+    must not log or forward a secret they encounter.
+  - Automated secret detection is best-effort and cannot guarantee absence;
+    the obligation sits with producers.
+- **C13. Industry neutrality** (D3.7). Core members use domain-neutral
+  vocabulary. Software-engineering terms such as repositories, commits and
+  builds appear only in extensions, even though software engineering is the
+  first proving ground.
+- **C14. Model and host neutrality** (ADR 0001 §2). Core members do not
+  assume a model provider, prompt format, agent harness, operating system or
+  cloud provider. Such details appear only as extension data or opaque,
+  attributed values.
+- **C15. Time is a claim.** Timestamps record what the producer asserts
+  (D1.2). No constraint or verification may depend on a timestamp being
+  accurate unless a trusted time source is defined (OQ-28).
+
+## Guarantees and boundaries
+
+- **C16. Bounded guarantees.** A protocol specification must not describe a
+  document as preventing, enforcing or guaranteeing anything beyond the
+  integration grade and enforcement boundary under which it is produced or
+  consumed. Observer-grade and non-mediated Integrated-grade records
+  describe decisions and observations, not prevention (see
+  [overview.md § Action lifecycle](../architecture/overview.md#action-lifecycle)).
