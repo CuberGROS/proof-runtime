@@ -22,6 +22,16 @@ this change.
 - **Record-keeping:** ADR 0001's open-question list is unchanged; this ADR
   records the resolutions.
 - **Changes:** changing any decision below requires a new ADR.
+- **Post-acceptance clarifications.** After acceptance, review in pull
+  request #2 led to clarifications, intended to leave every accepted
+  decision unchanged:
+  - the scope of D1 to D5 (Scope and duration),
+  - schema validation for newer minor versions (D1.3, D2.4),
+  - the canonical protocol version syntax and comparison (D2.2),
+  - SHA-256 in the normative reuse list (D5.1).
+
+  The owner's acceptance above predates them. Owner confirmation of these
+  clarifications is not recorded in this ADR.
 
 The key words "MUST", "MUST NOT", "SHOULD", "SHOULD NOT" and "MAY" in the
 Decision section are to be interpreted as described in BCP 14 (RFC 2119 and
@@ -54,7 +64,23 @@ Supporting documents:
 This ADR decides only shared, cross-protocol conventions. It defines no
 protocol fields. Where it names an information element that every document
 must carry (for example, "a protocol version"), the element's field name,
-position and exact syntax are left to the protocol specifications.
+position and exact syntax are left to the protocol specifications, except
+that D2.2 fixes the syntax of the protocol version value.
+
+### Scope and duration
+
+- **Every version of every core protocol.** D1 to D5 govern every version
+  of all four core protocols (Task Capsule, Action IR, Capability Manifest
+  and Evidence Receipt), before and after `1.0`. They continue to govern
+  until a later ADR explicitly supersedes the applicable rule; a new
+  protocol version alone never does.
+- **Not a wire version.** "Phase 1A" and the name "v0.1 foundation" refer
+  to the project milestone in which this ADR was written. They are not a
+  protocol version and do not limit any rule to protocol version `0.1` or
+  to `0.x` versions. This ADR introduces no global protocol version;
+  protocols remain independently versioned (D2.1).
+- **Reserved items.** Where this ADR marks an item as reserved (D4.7), it
+  imposes no requirement until a later ADR adopts it.
 
 ### Terms used in this decision
 
@@ -75,8 +101,8 @@ position and exact syntax are left to the protocol specifications.
      documents that contain them, rather than applying "last one wins".
    - Producers MUST NOT emit a byte order mark. Consumers MUST reject
      documents that start with one.
-   - **Numbers: one strict integer profile for the whole document.** In
-     v0.1, every JSON number token anywhere in a document, core or
+   - **Numbers: one strict integer profile for the whole document.**
+     Every JSON number token anywhere in a document, core or
      extension at any nesting depth, MUST satisfy all of the following:
      - **Integer spelling only.** The token consists of an optional minus
        sign followed by `0` or by a nonzero digit and further digits. It
@@ -119,8 +145,13 @@ position and exact syntax are left to the protocol specifications.
      **minimum**: a document that fails schema validation is invalid, but
      passing validation does not make a document valid. Semantic rules that
      the schema cannot express remain in the prose.
-   - Consumers MUST reject a document that fails validation against its
-     protocol's normative schema.
+   - Consumers MUST reject a document that fails validation against the
+     normative schema of the protocol version the document declares (D2.2).
+     This applies equally when a consumer processes a newer minor version
+     under D2.4.
+   - A consumer that cannot resolve that schema offline MUST reject the
+     document. It MUST NOT substitute the schema of another version, skip
+     validation, or fetch the schema from the network.
    - Schemas MUST be resolvable offline, by `$id`, from schemas bundled with
      the implementation. Validators MUST NOT fetch `$ref` targets from the
      network while validating documents.
@@ -133,8 +164,9 @@ position and exact syntax are left to the protocol specifications.
    that exceed them before any further processing. The actual limits are
    open (OQ-27).
 5. **Other encodings.** CBOR and other binary encodings are not part of
-   v0.1. Adding one requires a new ADR that defines a lossless mapping from
-   the JSON data model and its own deterministic encoding.
+   the core protocols. Adding one requires a new ADR that defines a
+   lossless mapping from the JSON data model and its own deterministic
+   encoding.
 
 ### D2. Versioning and compatibility (OQ-2)
 
@@ -150,6 +182,37 @@ position and exact syntax are left to the protocol specifications.
    of the declared protocol version. A document in which they differ is
    invalid, and consumers MUST reject it. Patch-level (editorial) revisions
    of a specification do not appear in documents.
+
+   **Canonical version syntax.** A protocol version has exactly one
+   spelling:
+
+   ```abnf
+   version   = component "." component   ; MAJOR "." MINOR
+   component = "0" / ( %x31-39 0*8DIGIT ) ; DIGIT = %x30-39 (ASCII only)
+   ```
+
+   - Each component is ASCII decimal: `0`, or a digit `1` to `9` followed
+     by up to eight further digits. Its value is therefore in the range 0
+     to 999999999.
+   - Leading zeros, signs, whitespace, additional components, non-ASCII
+     digits and any other notation (for example hexadecimal or exponent
+     forms) are not permitted. `01.2`, `1.02`, `+1.2`, `1.2.0`, `1`,
+     `1.`, ` 1.2` and `0x1.2` are all invalid.
+   - Producers MUST emit only this form. Consumers MUST validate the
+     version lexically and MUST reject a document whose protocol version
+     does not match it. They MUST NOT normalize a non-canonical spelling.
+   - Because D1.2 forbids fraction numbers, a protocol version carried in
+     JSON is a string, not a number.
+   - The major version in the type identifier uses the same component
+     syntax; its exact position in the URI is left to OQ-26 and the
+     protocol specifications.
+   - **Comparison.** Two versions are equal only if their MAJOR values are
+     equal and their MINOR values are equal; for canonical spellings this is
+     exact string equality. Versions are ordered by MAJOR value, then by
+     MINOR value, each compared as a non-negative integer. `1.10` is
+     therefore newer than `1.9`. Versions MUST NOT be compared as strings
+     for ordering, or as decimal fractions (under which `1.1` and `1.10`
+     would coincide).
 3. **Major version.** A major version changes when any change could cause a
    consumer of the previous major version to misinterpret a document.
    A consumer MUST reject a document whose major version it does not
@@ -168,7 +231,13 @@ position and exact syntax are left to the protocol specifications.
    open requires a new major version. A minor revision MUST NOT change the
    meaning of an existing member or value.
    - A consumer that implements `M.n` MAY process a document declaring
-     `M.m` with `m > n`. It ignores core members it does not recognize and
+     `M.m` with `m > n`. Doing so is optional; rejecting the document also
+     conforms.
+   - If it processes such a document, it MUST first validate it against
+     the normative schema of `M.m`, resolved offline (D1.3). If that schema
+     is not available to it, it MUST reject the document. Validation
+     against the schema of `M.n` is not a substitute.
+   - After validation, it ignores core members it does not recognize and
      handles unknown values of open members as originally specified. This
      is safe only because of D2.5.
    - A consumer MAY process documents declaring any `M.m` with `m ≤ n`.
@@ -285,13 +354,14 @@ position and exact syntax are left to the protocol specifications.
      stated residual risk, not a solved one.
 8. **Industry semantics** (software engineering, finance, healthcare and so
    on) live only in extensions, never in core members.
-9. **Registry.** v0.1 has no central extension registry. Collision
+9. **Registry.** There is no central extension registry. Collision
    resistance comes from URI ownership.
 
 ### D4. Canonicalization and integrity (OQ-4, partial)
 
-D4.1 to D4.6 are **normative in v0.1**. D4.7 is **reserved**: it records a
-direction for future work and imposes no v0.1 requirement.
+D4.1 to D4.6 are **normative**. D4.7 is **reserved**: it records a
+direction for future work and imposes no requirement until a later ADR
+adopts it.
 
 1. **Four distinct properties.** Proof Runtime documents and implementations
    MUST keep these apart:
@@ -328,13 +398,13 @@ direction for future work and imposes no v0.1 requirement.
    mapping from algorithm name to lowercase hex value. This is compatible
    with the in-toto `DigestSet`.
    - Implementations MUST support `sha256`.
-   - **`sha256` in every reference.** Every digest reference in a v0.1
+   - **`sha256` in every reference.** Every digest reference in a
      document MUST include a `sha256` entry. A reference without one is
      invalid.
    - Producers MUST compute every entry in a digest set over the same
      content.
-   - Consumers MUST accept only algorithms they consider secure. In v0.1,
-     `sha256` is always accepted.
+   - Consumers MUST accept only algorithms they consider secure. `sha256`
+     is always accepted while it is the mandatory common anchor.
    - **Matching: a common anchor, plus all-of-accepted.** Candidate content
      matches a digest set only if both of these hold:
      1. the `sha256` entry matches. Every consumer MUST verify it; it is
@@ -386,12 +456,14 @@ direction for future work and imposes no v0.1 requirement.
      evidence. It MUST NOT be presented as converting that evidence into
      runtime-enforced fact (I4, I5). The same will apply to any future
      signature (D4.7).
-   - v0.1 defines no signing, and no signing infrastructure, keys or trust
-     roots exist. A v0.1 document or implementation MUST NOT claim that a
+   - This ADR defines no signing, and no signing infrastructure, keys or
+     trust roots exist. A document or implementation MUST NOT claim that a
      document is signed, that its authenticity is established, or that it
      conforms to DSSE or any other signing envelope. This prohibition is
-     normative in v0.1. It is not part of the reserved provisions in D4.7.
-7. **Reserved: future signatures.** This item imposes no v0.1 requirement.
+     normative and holds until a later ADR defines signing. It is not part
+     of the reserved provisions in D4.7.
+7. **Reserved: future signatures.** This item imposes no requirement until
+   a later ADR adopts it.
    - **The envelope choice is not decided by this ADR.** It remains part
      of the OQ-4 residual, and a future ADR must make it with BCP 14
      force. DSSE is the **preferred candidate**. It signs exact payload
@@ -411,18 +483,19 @@ Proof Runtime **reuses** a small set of established specifications
 normatively, **reserves** one for future use, **interoperates** with
 adjacent agent and observability protocols at defined boundaries, and
 **aligns** conceptually with provenance models without adopting their full
-data models in v0.1. The per-standard classification is in
+data models. The per-standard classification is in
 [docs/protocols/standards-matrix.md](../protocols/standards-matrix.md).
 The binding rules are:
 
-1. **Normative reuse in v0.1:**
+1. **Normative reuse:**
    - RFC 8259 (JSON), RFC 7493 (I-JSON), RFC 8785 (JCS),
    - JSON Schema 2020-12,
+   - SHA-256, as specified in FIPS 180-4 (the mandatory digest algorithm
+     and common anchor; D4.4),
    - RFC 3339 (timestamps), RFC 4648 (base64url), RFC 3986 (URIs),
    - the in-toto `DigestSet` shape.
-2. **Reserved for future use, not normative in v0.1, with no choice made:**
-   DSSE, as the
-   preferred signing envelope (D4.7).
+2. **Reserved for future use, not normative, with no choice made:** DSSE,
+   as the preferred signing envelope (D4.7).
 3. **Interoperability, not dependency.** MCP, A2A, CloudEvents,
    OpenTelemetry, in-toto attestations, SLSA, OIDC and SPIFFE are treated as
    external protocols that adapters may map to or from. No core protocol

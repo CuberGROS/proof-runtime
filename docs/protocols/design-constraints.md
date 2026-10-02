@@ -23,9 +23,13 @@ ADR. It must not quietly deviate.
     token, anywhere in the document, that is not an integer spelling within
     ±(2^53 − 1), checked lexically before any lossy conversion. Fraction
     parts, exponents and `-0` are all rejected,
-  - it fails validation against its protocol's normative JSON Schema
-    (D1.3),
+  - it fails validation against the normative JSON Schema of the protocol
+    version it declares, or that schema cannot be resolved offline (D1.3).
+    This applies also when a newer minor version is processed (D2.4),
   - it exceeds the resource limits (D1.4),
+  - its protocol version is not in the canonical `MAJOR.MINOR` syntax, or
+    a component exceeds the bound (D2.2). Non-canonical spellings are
+    rejected, never normalized,
   - its type identifier and declared version disagree on the major
     version (D2.2),
   - its major version is unknown (D2.3),
@@ -119,8 +123,8 @@ ADR. It must not quietly deviate.
   A future signature (D4.7) would show only that a key holder endorsed
   that content. Neither shows that the content
   is true, that its author was authorized, or that an action executed as
-  described. v0.1 defines no signatures, and no v0.1 document may claim to
-  be signed.
+  described. No signatures are defined (D4.7 is reserved), and no document
+  may claim to be signed (D4.6).
 
 ## Data hygiene
 

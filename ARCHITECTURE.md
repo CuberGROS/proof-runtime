@@ -1,7 +1,9 @@
 # Architecture
 
-> **Status: pre-alpha, Phase 0.** This document describes architectural
-> boundaries only. Nothing described here is implemented yet.
+> **Status: pre-alpha, Phase 1A.** The architecture is frozen (ADR 0001)
+> and the shared protocol foundations are decided (ADR 0002). This document
+> describes architectural boundaries only. Nothing described here is
+> implemented yet.
 
 This file is the **canonical entry point** to the Proof Runtime architecture.
 It summarizes the frozen boundaries and identifies which document is
@@ -27,8 +29,11 @@ for review. Until the defect is fixed, ADR 0001 governs what is decided, and
 
 The boundaries below are **frozen** by
 [ADR 0001](docs/adr/0001-architecture-freeze.md), which the repository owner
-accepted on 2026-10-02. Changing them requires a new ADR. The open questions
-in ADR 0001 remain unresolved. Each will be settled by its own ADR or
+accepted on 2026-10-02. Changing them requires a new ADR.
+[ADR 0002](docs/adr/0002-shared-protocol-foundations.md) resolves OQ-1,
+OQ-2, OQ-3 and OQ-23, and OQ-4 except its residual. The other open
+questions in ADR 0001, the OQ-4 residual, and OQ-26 to OQ-29 raised by
+ADR 0002 remain unresolved. Each will be settled by its own ADR or
 specification decision, within these boundaries.
 
 ## Four planes

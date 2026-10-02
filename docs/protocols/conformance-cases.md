@@ -35,7 +35,7 @@
 
 | ID | Case | Expected result | Rule |
 |---|---|---|---|
-| S-01 | Document is valid JSON under the profile but fails its protocol's normative JSON Schema, for example by missing a required member | Reject | D1.3, C2 |
+| S-01 | Document is valid JSON under the profile but fails the normative JSON Schema of the protocol version it declares, for example by missing a required member | Reject | D1.3, C2 |
 | S-02 | Number token `9007199254740993` (integer spelling, above 2^53 − 1), in core or extension data | Invalid; reject. Detected lexically, before any binary64 conversion, which would round it to `9007199254740992`. | D1.2 |
 | S-03 | Number token `9007199254740993.0` (integral value with a fraction part) | Invalid; reject (fraction spelling) | D1.2 |
 | S-04 | Number token `9.007199254740993e15` (integral value with an exponent) | Invalid; reject (exponent spelling) | D1.2 |
@@ -81,11 +81,19 @@ mitigation. For unaware consumers, this risk is unmitigated (D3.6).
 | V-02 | Document major version not implemented by the consumer | Reject; no best-effort parsing | D2.3 |
 | V-03 | Protocol `0.x`: document `0.3`, consumer implements `0.2` only | Reject | D2.6 |
 | V-04 | Protocol `0.x`: a specification declares `0.2` and `0.3` compatible | Specification defect: `0.x` compatibility must not be declared. A consumer that implements only `0.2` rejects a `0.3` document regardless. | D2.6 |
-| V-05 | Protocol `≥1.0`: document `1.4`, consumer implements `1.2` | **Optional (MAY).** Process and reject both conform. If the consumer processes the document, it ignores unrecognized core members, which are decision-neutral by D2.5, and handles unknown values of open members as originally specified. Not a mandatory acceptance test. | D2.4, D2.5 |
+| V-05 | Protocol `≥1.0`: document `1.4`, consumer implements `1.2` and holds the normative `1.4` schema offline | **Optional (MAY).** Process and reject both conform. If the consumer processes the document, it first validates it against the `1.4` schema (rejecting on failure), then ignores unrecognized core members, which are decision-neutral by D2.5, and handles unknown values of open members as originally specified. Not a mandatory acceptance test. | D1.3, D2.4, D2.5 |
 | V-06 | Protocol `≥1.0`: a minor revision introduces a core member that affects a decision | Specification defect: must be a major version or a critical extension | D2.5 |
 | V-07 | Malformed protocol version (not `MAJOR.MINOR`) | Invalid; reject | D2.2 |
 | V-08 | Protocol `≥1.0`: a minor revision adds a value to a member whose original definition did not declare its value space open | Specification defect: requires a new major version | D2.4 |
 | V-09 | Protocol `≥1.0`: document `1.4` uses a value unknown to a `1.2` consumer, in a member declared open with "reject unknown values" handling | Reject, as the original definition specifies | D2.4 |
+| V-10 | Protocol `≥1.0`: document `1.4`, consumer implements `1.2` and does **not** hold the normative `1.4` schema offline | Reject. Validating against the `1.2` schema instead, skipping validation, or fetching the schema from the network does not conform. | D1.3, D2.4 |
+| V-11 | Protocol `≥1.0`: document `1.4` passes the `1.2` schema but fails the `1.4` schema; the consumer implements `1.2`, holds the `1.4` schema and chooses to process | Reject (schema failure) | D1.3, D2.4 |
+| V-12 | Protocol version with leading zeros or a sign: `01.2`, `1.02`, `00.0`, `+1.2`, `-1.2` | Invalid; reject. The version is not normalized to `1.2` or `0.0`. | D2.2 |
+| V-13 | Protocol version with whitespace or the wrong number of components: `" 1.2"`, `"1.2 "`, `1.2.0`, `1`, `1.`, `.2`, `1,2` | Invalid; reject | D2.2 |
+| V-14 | Protocol version in non-decimal or non-ASCII notation: `0x1.2`, `1e0.2`, or full-width digits (U+FF11 FULLWIDTH DIGIT ONE in place of `1`) | Invalid; reject | D2.2 |
+| V-15 | Protocol version component outside the bound: `1000000000.0` or `1.1000000000` (ten digits) | Invalid; reject. `0.0` and `999999999.999999999` are syntactically valid. | D2.2 |
+| V-16 | Protocol version carried as a JSON number (`1.2`) rather than a string | Invalid; reject (fraction spelling) | D1.2, D2.2 |
+| V-17 | Version comparison: `1.10` against `1.9`, and `1.1` against `1.10` | `1.10` is newer than `1.9`; `1.1` and `1.10` are different versions. A string or decimal comparison does not conform. | D2.2 |
 
 ## Integrity (D4)
 
@@ -97,10 +105,10 @@ mitigation. For unaware consumers, this risk is unmitigated (D3.6).
 | I-04 | Relay's parser rounds an extension number it cannot represent exactly, then re-serializes | Content digest differs. The relay was required to forward the original bytes or treat the output as a transformation. Presenting it with the original's digest is non-conformant. | D4.5 |
 | I-05 | A critical marker is removed after the original digest was recorded independently | Recomputed digest does not match the recorded digest; the document is unverifiable | D3.7, D4.5 |
 | I-06 | Migration or redaction produces a new document that is presented with the original's digest | Non-conformant. The new document needs its own digest and a reference to the original. | D2.7, D4.5 |
-| I-07 | Reference carries only digest algorithms the consumer does not accept. Because `sha256` is mandatory and always accepted in v0.1, this means `sha256` is absent. | Invalid reference; reject (same outcome as I-12) | D4.4 |
-| I-08 | A v0.1 document or implementation claims to be signed, to have established authenticity, or to conform to DSSE or another signing envelope | Non-conformant claim | D4.6 |
+| I-07 | Reference carries only digest algorithms the consumer does not accept. Because `sha256` is mandatory and always accepted, this means `sha256` is absent. | Invalid reference; reject (same outcome as I-12) | D4.4 |
+| I-08 | A document or implementation claims to be signed, to have established authenticity, or to conform to DSSE or another signing envelope | Non-conformant claim | D4.6 |
 | I-09 | A digest set holds `sha256` of content A and `sha512` of content B (a producer error) | Producer violates D4.4. A consumer that verifies both entries matches neither A nor B, and rejects. A consumer that verifies only `sha256` resolves to A. **No conformant consumer resolves to B**, because the `sha256` anchor must always match. | D4.4 |
 | I-10 | A digest set holds `sha256` and `sha512`, both computed over the candidate content | Match | D4.4 |
-| I-12 | A v0.1 digest reference contains only `sha512` (no `sha256`) | Invalid reference; reject | D4.4 |
+| I-12 | A digest reference contains only `sha512` (no `sha256`) | Invalid reference; reject | D4.4 |
 | I-13 | A reference's target has been deleted or tombstoned under the retention policy | Unverifiable. It is never presented as verified. Deletion is not an in-place edit. | D2.7 |
 | I-11 | Two serializations differ only in member order and different JSON string spellings of the same parsed content (`"\u0061"` versus `"a"`) | Same document content digest. This is canonical-content integrity, not byte integrity; byte equality is not claimed. | D4.1, D4.2 |

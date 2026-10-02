@@ -90,13 +90,17 @@ implementation.
 
 ## Roadmap status
 
-- **Phase 0 (current):** repository foundation and architecture
-  documentation. No runtime code.
-- Later phases (protocol specification, reference implementation) begin only
-  after Phase 0 is reviewed and explicitly authorized.
+- **Phase 0 (complete):** repository foundation and architecture
+  documentation, frozen by ADR 0001.
+- **Phase 1A (current):** shared protocol foundations, decided by
+  [ADR 0002](docs/adr/0002-shared-protocol-foundations.md). Documentation
+  only; no runtime code.
+- Later phases (field-level protocol specification, reference
+  implementation) begin only after they are explicitly authorized.
 
 Open architectural questions are tracked in
-[docs/adr/0001-architecture-freeze.md](docs/adr/0001-architecture-freeze.md#open-questions).
+[docs/adr/0001-architecture-freeze.md](docs/adr/0001-architecture-freeze.md#open-questions)
+and [ADR 0002 § New open questions](docs/adr/0002-shared-protocol-foundations.md#new-open-questions).
 
 ## Contributing and security
 

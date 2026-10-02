@@ -50,7 +50,7 @@ The final section analyzes **OQ-29**, which remains open.
 | **JSON + I-JSON profile + JSON Schema 2020-12** | Universal parsers. Readable. Mature schema ecosystem. A canonicalization scheme exists (JCS). Used by in-toto, A2A, CloudEvents' JSON format and MCP. | Default parsers often accept duplicate keys and lose precision on large numbers, so a strict profile is required. More verbose than binary formats. |
 | **CBOR + CDDL** (RFC 8949, RFC 8610) | Compact. Deterministic encoding defined in the CBOR RFC **(unverified)**. Native binary values. | Not human-readable. Smaller tooling base. CDDL validators are less widespread than JSON Schema validators. |
 | **Protocol Buffers** | Compact and fast, with strong code generation. | Requires generated code. Deterministic serialization is not guaranteed across languages. Unknown-field handling varies. Poor fit for readable audit records. |
-| **JSON-LD / RDF** | Rich semantics. Aligns with W3C PROV. | Heavy processing model. RDF canonicalization adds complexity and attack surface. Disproportionate for v0.1. |
+| **JSON-LD / RDF** | Rich semantics. Aligns with W3C PROV. | Heavy processing model. RDF canonicalization adds complexity and attack surface. Disproportionate for the core protocols. |
 | **YAML** | Readable. | Multiple parsing ambiguities and implicit typing. Unsuitable for security-relevant interchange. |
 
 ### Interoperability
@@ -78,8 +78,8 @@ transcoding.
     keeps the original value. Two conformant consumers could then
     interpret the same critical extension data differently.
 
-  D1.2 removes the ambiguity at its source. In v0.1, every number token
-  in the whole document must be an integer spelling with no fraction or
+  D1.2 removes the ambiguity at its source. Every number token in the
+  whole document must be an integer spelling with no fraction or
   exponent, no `-0`, and a value within ±(2^53 − 1). The token is checked
   lexically, before any lossy conversion. Fractions, monetary values,
   large integers and other exact-precision quantities are strings in the
@@ -186,6 +186,21 @@ Two further rules close remaining gaps:
 - **Consistency (D2.2).** A document whose type URI and declared version
   disagree on the major version is rejected. Otherwise, a consumer could
   dispatch on one value while the document's author relied on the other.
+- **One spelling per version (D2.2).** If `1.2`, `01.2` and `1.02` were
+  all accepted, consumers that normalize and consumers that compare
+  strings would dispatch the same document differently, and a decimal
+  reading would make `1.1` and `1.10` collide. D2.2 therefore defines one
+  canonical ASCII grammar with bounded components, rejects every other
+  spelling without normalization, and orders versions by integer
+  component.
+- **Schema for a newer minor (D1.3, D2.4).** A consumer that processes a
+  newer minor version must still validate the document against that
+  version's normative schema. Validating only against its own, older
+  schema would either reject valid new members or, if that schema is
+  permissive, let a malformed document through unvalidated. The newer
+  schema must be resolvable offline, for example from an updated schema
+  bundle; if it is not available, the consumer rejects. Processing a newer
+  minor remains optional.
 
 ### Migration and extension
 
@@ -212,6 +227,9 @@ Adopt **D2**:
 - unknown majors fail closed,
 - `0.x` documents accepted only on an exact, explicitly implemented
   `MAJOR.MINOR` match,
+- one canonical, bounded version syntax with integer ordering,
+- optional processing of newer minors from `1.0`, only after validation
+  against the declared version's schema,
 - security-relevant changes are never ignorable.
 
 ### Residual risks and future work
@@ -228,7 +246,7 @@ Adopt **D2**:
 - **R3.1** Domain-specific and host-specific data can be added without
   changing core protocols (ADR 0001 §2; industry neutrality).
 - **R3.2** Independent parties can define extensions without collisions,
-  and without a central registry in v0.1.
+  and without a central registry.
 - **R3.3** A consumer can tell extensions it may safely ignore from
   extensions it must understand.
 - **R3.4** Unknown extensions never silently weaken authorization or
@@ -340,7 +358,7 @@ Adopt **D3**:
 - **R4.2** Integrity, authenticity, authorization and correctness are never
   conflated (I2, I5, I6).
 - **R4.3** The design leaves room for signatures without requiring signing
-  infrastructure in v0.1.
+  infrastructure now.
 - **R4.4** Algorithm agility: digest algorithms can be replaced without a
   protocol major version.
 
@@ -352,7 +370,7 @@ Adopt **D3**:
 | **JCS canonical form, then digest** | Deterministic across implementations for I-JSON input (verified, author's repository). Multiple language implementations exist. A2A uses JCS before signing Agent Cards (verified). Chosen for documents. |
 | **Deterministic CBOR** | Only applicable with CBOR encoding. Deferred together with D1.5. |
 | **JWS (compact or JSON serialization) as the integrity carrier** | Couples integrity to signing. A JWS without a signature would be misleading. Kept as a possible later alternative for signatures. |
-| **DSSE envelope for signatures** | Signs exact bytes plus payload type through PAE (verified), avoiding re-canonicalization during verification. Supports multiple signatures. Used by in-toto. Reserved as the preferred future envelope (D4.7); not normative in v0.1. |
+| **DSSE envelope for signatures** | Signs exact bytes plus payload type through PAE (verified), avoiding re-canonicalization during verification. Supports multiple signatures. Used by in-toto. Reserved as the preferred future envelope (D4.7); not normative. |
 
 ### Interoperability
 
@@ -370,8 +388,8 @@ Adopt **D3**:
   numbers and ASCII identifiers remove the main sources of cross-language
   divergence. Strings in content are digested as given;
   differently normalized strings are, correctly, different content.
-- **No `sha256`, no reference.** A v0.1 digest reference without `sha256`
-  is invalid and rejected (D4.4). Because `sha256` is mandatory and always
+- **No `sha256`, no reference.** A digest reference without `sha256` is
+  invalid and rejected (D4.4). Because `sha256` is mandatory and always
   accepted, a reference that carries only algorithms a consumer does not
   accept is the same case. This prevents downgrade to weak or unknown
   algorithms.
@@ -384,7 +402,7 @@ Adopt **D3**:
   - "All of the consumer's accepted entries must match" alone is not
     enough. A consumer that accepts only SHA-256 still resolves to A, while
     one that accepts only SHA-512 resolves to B.
-  - D4.4 therefore adds a **common validation anchor**. Every v0.1
+  - D4.4 therefore adds a **common validation anchor**. Every
     reference must contain `sha256`, and every consumer must verify it.
     Every other accepted entry must also match.
   - No conformant consumer can then resolve the reference to B. At worst,
@@ -399,8 +417,10 @@ Adopt **D3**:
   one digest (D4.1). That is what makes cross-implementation references
   possible. But it also means a matching document digest does not show
   that the bytes received are the bytes sent; only opaque-artifact digests
-  carry byte integrity. Anything that needs exact bytes, such as a future
-  signature, must operate on the exact payload bytes (D4.7).
+  carry byte integrity. Anything that needs the exact received bytes must
+  digest those bytes as an artifact. A future signature (D4.7) would
+  instead cover the canonical form, the same content the document digest
+  covers.
 - **What crypto does not prove.** Hashing proves only that content is
   unchanged: canonical content for documents, exact bytes for artifacts.
   Signing proves only that a key holder endorsed that content. Neither
@@ -416,16 +436,25 @@ Adopt **D3**:
   carried the original digest forward, consumers would accept modified
   content as the original. D4.5 therefore requires recomputation, and
   forbids presenting a transformed document with the original's digest or
-  any endorsement made over the original's bytes. Future DSSE signatures
-  cover exact payload bytes (verified), so they cannot apply to a
-  re-serialized copy unless its bytes are identical.
+  any endorsement made over the original's bytes.
+- **Future signatures and re-serialization.** Signing is reserved (D4.7)
+  and not implemented; nothing here describes current behavior.
+  - DSSE signs exact payload bytes (verified). Under D4.7, the payload
+    would be the document's JCS canonical form, not the bytes as received.
+  - A lossless re-serialization (D4.5) may change the received JSON bytes,
+    for example whitespace, member order or string escapes, while the JCS
+    canonical payload stays identical. Recomputing the canonical form from
+    such a copy yields the signed payload again, so a signature over the
+    canonical payload is not invalidated merely by those changes.
+  - A transformation changes the canonical payload. No endorsement over
+    the original applies to it, which is why D4.5 forbids presenting one.
 
 ### Normative now versus reserved
 
-| Status in v0.1 | Items |
+| Status | Items |
 |---|---|
-| **Normative** | Four-property separation (D4.1); JCS canonical form (D4.2); content digests (D4.3); `DigestSet` with `sha256` in every reference and anchored matching (D4.4); store, relay and transform rules (D4.5); no provenance laundering, and the **prohibition on claiming signing, authenticity or envelope conformance in v0.1** (D4.6). |
-| **Reserved, no v0.1 requirement** | Future signing design (D4.7). The envelope choice is open; DSSE is the preferred candidate. |
+| **Normative** | Four-property separation (D4.1); JCS canonical form (D4.2); content digests (D4.3); `DigestSet` with `sha256` in every reference and anchored matching (D4.4); store, relay and transform rules (D4.5); no provenance laundering, and the **prohibition on claiming signing, authenticity or envelope conformance** until a later ADR defines signing (D4.6). |
+| **Reserved, no requirement until a later ADR adopts it** | Future signing design (D4.7). The envelope choice is open; DSSE is the preferred candidate. |
 
 ### Migration and extension
 
@@ -445,7 +474,7 @@ Adopt **D4**:
   correctness.
 
 DSSE is **reserved** as the preferred candidate for a future signing
-envelope. It is not a v0.1 requirement, and the envelope choice itself
+envelope. It imposes no requirement, and the envelope choice itself
 remains open (OQ-4 residual).
 
 ### Residual risks and future work
@@ -481,7 +510,7 @@ The full per-standard evaluation is in the
   `DigestSet`, RFC 3339, RFC 4648 and RFC 3986. These are small, stable
   building blocks that directly meet the OQ-1 and OQ-4 requirements.
 - **Reserved:** DSSE, as the preferred future signing envelope. It is not
-  normative in v0.1.
+  normative.
 - **Interoperate:** MCP, A2A, CloudEvents, OpenTelemetry, in-toto
   attestations, JWS, OIDC and SPIFFE. These protocols describe adjacent
   concerns: tool invocation, agent messaging, event transport, telemetry,
@@ -492,7 +521,7 @@ The full per-standard evaluation is in the
   integrity.
 - **Align:** W3C PROV's entity / activity / agent model, for Evidence
   Receipt provenance vocabulary.
-- **Out of scope for v0.1:** CBOR, CDDL, COSE, Protocol Buffers, W3C
+- **Out of scope:** CBOR, CDDL, COSE, Protocol Buffers, W3C
   Verifiable Credentials, and SLSA in the core.
 
 ### Security
@@ -595,7 +624,7 @@ protocol) is an architectural question for the repository owner.
 - **Replay.** Binding by proposal digest prevents reuse of a decision for a
   *different* proposal. It does not prevent reuse for an *identical*
   proposal submitted again. Expiry and single-use semantics belong to OQ-9.
-- **Authenticity.** v0.1 has no signatures (D4.7 is reserved). A decision
+- **Authenticity.** No signatures are defined (D4.7 is reserved). A decision
   record can therefore be trusted only inside the trust boundary that
   produced it. Using it across hosts requires the OQ-4 residual and OQ-5.
 - **Enforcement is separate.** At the Observer grade, and for Integrated
