@@ -3,25 +3,37 @@
 > **Status: pre-alpha, Phase 0.** This document describes architectural
 > boundaries only. Nothing described here is implemented yet.
 
-This file is the entry point to the Proof Runtime architecture. It states the
-frozen boundaries and points to the documents that hold the detail. If this
-file and a linked document disagree, treat it as a defect and raise it for
-review.
+This file is the **canonical entry point** to the Proof Runtime architecture.
+It summarizes the proposed boundaries and identifies which document is
+authoritative for each topic.
 
-| Document                                                                     | Contents                                               |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------ |
-| [docs/architecture/overview.md](docs/architecture/overview.md)               | Planes, protocols, flows, integration grades, diagrams |
-| [docs/invariants.md](docs/invariants.md)                                     | Non-negotiable invariants with rationale and scope     |
-| [docs/adr/0001-architecture-freeze.md](docs/adr/0001-architecture-freeze.md) | The freeze decision, review items and open questions   |
-| [spec/README.md](spec/README.md)                                             | Requirements and status of the four core protocols     |
+## Document roles
 
-## Frozen boundaries
+| Document                                                                     | Role                                                                                          |
+| ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `ARCHITECTURE.md` (this file)                                                | Canonical entry point and summary of the architecture boundaries                              |
+| [docs/adr/0001-architecture-freeze.md](docs/adr/0001-architecture-freeze.md) | Decision record: what is proposed for freeze, terms under review, open questions              |
+| [docs/invariants.md](docs/invariants.md)                                     | Detailed specification of the invariants: wording, meaning and enforcement scope             |
+| [docs/architecture/overview.md](docs/architecture/overview.md)               | Explanatory narrative: plane responsibilities, action lifecycle, integration grades, diagrams |
+| [spec/README.md](spec/README.md)                                             | Protocol requirements and the questions that block their specification                        |
 
-The following boundaries are fixed by
-[ADR 0001](docs/adr/0001-architecture-freeze.md). Changing them requires a new
-ADR.
+Other documents summarize these sources and link to them rather than
+restating them. If two documents disagree, treat it as a defect and raise it
+for review. Until the defect is fixed, ADR 0001 governs what is decided, and
+`docs/invariants.md` governs the wording of the invariants.
 
-### Four planes
+## Decision status
+
+The boundaries below are **proposed for freeze** in
+[ADR 0001](docs/adr/0001-architecture-freeze.md), whose status is
+**Proposed**. They become frozen only when a maintainer explicitly accepts
+the ADR.
+
+- **While the ADR is Proposed:** changes go through review as amendments to
+  ADR 0001.
+- **After acceptance:** changes require a new ADR.
+
+## Four planes
 
 | Plane     | Components                                      |
 | --------- | ----------------------------------------------- |
@@ -30,29 +42,34 @@ ADR.
 | STATE     | Task Capsule, Checkpoint, Context, Memory       |
 | TRUST     | Evidence, Claims, Verification, Receipts, Audit |
 
-### Four core protocols
+The responsibilities of each plane are described in
+[overview.md § The four planes](docs/architecture/overview.md#the-four-planes).
 
-- **Task Capsule**
-- **Action IR**
-- **Capability Manifest**
-- **Evidence Receipt**
+## Four core protocols
+
+- **Task Capsule** (STATE)
+- **Action IR** (EXECUTION)
+- **Capability Manifest** (CONTROL)
+- **Evidence Receipt** (TRUST)
 
 Each protocol must be **model-neutral**, **host-neutral**, **versioned** and
-**extensible**. Field-level definitions are intentionally deferred; see
+**extensible**. Field-level definitions are intentionally deferred. Intended
+roles, requirements and blocking questions are in
 [spec/README.md](spec/README.md).
 
-### Invariants
+## Invariants
 
-The ten invariants in [docs/invariants.md](docs/invariants.md) are
-non-negotiable. In particular, a model must never directly transition an
+The ten invariants are specified in [docs/invariants.md](docs/invariants.md).
+They include the rule that a model must never directly transition an
 executing task to verified completion.
 
-### Integration grades
+## Integration grades
 
 The runtime distinguishes **Observer**, **Integrated** and **Managed**
-integration grades. It never claims an enforcement guarantee outside the
-boundary it actually controls. See
-[overview.md § Integration grades](docs/architecture/overview.md#integration-grades).
+integration grades. Records must identify the integration grade and the
+actual enforcement boundary under which each action ran. The runtime never
+claims an enforcement guarantee outside the boundary it actually controls.
+See [overview.md § Integration grades](docs/architecture/overview.md#integration-grades).
 
 ## Design principles
 

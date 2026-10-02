@@ -1,7 +1,10 @@
 # Invariants
 
-> **Status: frozen by [ADR 0001](adr/0001-architecture-freeze.md).**
-> Changing, removing or weakening an invariant requires a new ADR.
+> **Status: proposed for freeze in [ADR 0001](adr/0001-architecture-freeze.md)
+> (status: Proposed).** This document is the detailed specification of the
+> invariants, and ADR 0001 records the decision to adopt them. They become
+> frozen only when a maintainer explicitly accepts ADR 0001. After that,
+> changing, removing or weakening an invariant requires a new ADR.
 
 These invariants are non-negotiable design constraints. Every protocol,
 component and integration must preserve them. Where an implementation cannot
@@ -95,9 +98,9 @@ capability denials") is not the same as the runtime enforcing that control.
 it controls. Behavior inside a host that the runtime does not control is, at
 best, attested by that host.
 
-**Implication.** Records state the integration grade and enforcement boundary
-under which an action ran. The runtime makes no enforcement claim outside that
-boundary.
+**Implication.** Records must identify the integration grade and the actual
+enforcement boundary under which each action ran. The runtime makes no
+enforcement claim outside that boundary.
 
 ### I6 — `NO EVIDENCE -> NO VERIFIED COMPLETION`
 
@@ -107,7 +110,8 @@ evidence supports it.
 **Rationale.** Without evidence, "verified" would mean "asserted".
 
 **Implication.** When evidence is missing or does not support a claim, the
-result is unverified or failed verification, not verified.
+outcome must not be "verified". How other outcomes are represented is an
+[open question](adr/0001-architecture-freeze.md#open-questions) (OQ-17).
 
 ### I7 — `NO CAPABILITY -> NO EFFECTFUL ACTION`
 
@@ -118,8 +122,10 @@ sending messages) needs an explicit capability that covers it.
 **Rationale.** Capabilities make the scope of permitted effects explicit,
 reviewable and auditable.
 
-**Implication.** By default, an effectful action is denied. Which actions
-count as effectful is an [open question](adr/0001-architecture-freeze.md#open-questions).
+**Implication.** An effectful action without a covering capability is
+denied. This "default deny" is a restatement of I7, not a separate rule.
+Which actions count as effectful is an
+[open question](adr/0001-architecture-freeze.md#open-questions) (OQ-10).
 
 ### I8 — `PRIVILEGE EXPANSION -> EXTERNAL AUTHORIZATION`
 
@@ -142,7 +148,8 @@ permits it, or an authorized approver approves it, as policy requires.
 that a capability alone is not sufficient.
 
 **Implication.** The CONTROL plane assesses risk before execution. The risk
-model is an [open question](adr/0001-architecture-freeze.md#open-questions).
+model is an [open question](adr/0001-architecture-freeze.md#open-questions)
+(OQ-8).
 
 ### I10 — `FAILED TRANSACTION -> ROLLBACK OR COMPENSATION`
 
@@ -155,18 +162,21 @@ unreliable.
 **Implication.** Rollback or compensation, and its outcome, are recorded as
 evidence. If neither succeeds, that failure is recorded explicitly and is
 never hidden. Handling of irreversible effects is an
-[open question](adr/0001-architecture-freeze.md#open-questions).
+[open question](adr/0001-architecture-freeze.md#open-questions) (OQ-11).
 
 ## Enforcement scope
 
-How strongly an invariant can be upheld depends on the integration grade:
+How strongly an invariant about execution can be upheld depends on the
+integration grade (see
+[overview.md § Integration grades](architecture/overview.md#integration-grades)):
 
-| Grade      | What the runtime can do for an invariant                                                                                         |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Observer   | Detect and record apparent violations after the fact; it cannot prevent them.                                                    |
-| Integrated | Issue decisions that the host is expected to honor; the host's compliance is attested by the host, not enforced by the runtime.  |
-| Managed    | Enforce, within the execution boundary the runtime itself controls.                                                             |
+| Grade      | What the runtime can do for an invariant                                                                                                                                                                                                                  |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Observer   | Detect and record apparent violations it has evidence of. It cannot prevent them.                                                                                                                                                                         |
+| Integrated | Enforce its decisions through the specific control points the host exposes, for the operations that actually pass through them. For anything else it can only issue and record decisions; whether the host honors them is host-attested, not enforced. |
+| Managed    | Enforce, within the execution boundary the runtime itself controls.                                                                                                                                                                                      |
 
-Invariants about **what the runtime records and concludes** (I2, I3, I4, I6
-and the derived rule) apply at every grade. They govern the runtime's own
-records and verification outcomes, which are always within its control.
+Some invariants govern what the runtime records, claims and concludes: I2,
+I3, I4, I5, I6 and the derived rule. These apply at **every** grade, because
+the runtime's own records and verification outcomes are always within its
+control.

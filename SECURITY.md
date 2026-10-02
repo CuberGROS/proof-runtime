@@ -50,8 +50,18 @@ Because the project is currently in the architecture phase, reports about
 - a privilege expansion that does not require external authorization,
 - an enforcement claim that extends beyond the boundary the runtime controls.
 
-Design-level issues that do not involve a concrete exploitable artifact may be
-discussed in public issues.
+Public issues are acceptable for design discussion **only** when the
+discussion does not disclose an exploitable vulnerability or sensitive
+exploit details. Examples of acceptable public topics:
+
+- an ambiguity in the documents,
+- an inconsistency between documents,
+- a missing open question.
+
+If a report describes a way to actually bypass a control in any
+implementation, deployment or integration, it must go through the private
+process above. The same applies to steps, payloads or conditions that would
+help someone exploit a weakness. If you are unsure, report privately.
 
 ## Handling of secrets in this repository
 

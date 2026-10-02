@@ -7,17 +7,17 @@
 > authorized.
 
 Proof Runtime defines four core protocols. Their existence and purpose are
-frozen by [ADR 0001](../docs/adr/0001-architecture-freeze.md). Their contents
-are not.
+proposed for freeze in [ADR 0001](../docs/adr/0001-architecture-freeze.md),
+whose status is **Proposed**. Their contents are not yet defined.
 
 ## The four core protocols
 
-| Protocol            | Primary plane | Intended role                                                                 |
-| ------------------- | ------------- | ----------------------------------------------------------------------------- |
-| Task Capsule        | STATE         | Portable task identity, goal and state, usable across models and hosts        |
-| Action IR           | EXECUTION     | Host-neutral intermediate representation of a proposed action                 |
-| Capability Manifest | CONTROL       | Explicit statement of the capabilities an actor holds and their scope         |
-| Evidence Receipt    | TRUST         | Machine-verifiable record linking actions, evidence, claims and verification  |
+| Protocol            | Primary plane | Intended role                                                                |
+| ------------------- | ------------- | ---------------------------------------------------------------------------- |
+| Task Capsule        | STATE         | Portable task identity, goal and state, usable across models and hosts       |
+| Action IR           | EXECUTION     | Host-neutral intermediate representation of a proposed action                |
+| Capability Manifest | CONTROL       | Explicit statement of the capabilities an actor holds and their scope        |
+| Evidence Receipt    | TRUST         | Machine-verifiable record linking actions, evidence, claims and verification |
 
 ## Requirements common to all protocols
 
@@ -39,22 +39,41 @@ In addition, every protocol must preserve the
   completion.
 - An Action IR document is a proposal. It does not carry authority.
 - A Capability Manifest cannot be expanded by the actor it describes.
-- An Evidence Receipt must keep claims distinct from verified facts, and must
-  make the enforcement boundary under which evidence was collected visible.
+- An Evidence Receipt must keep claims distinct from verified facts. It must
+  identify the integration grade and the actual enforcement boundary under
+  which its evidence was collected.
+- No protocol document, including Action IR, may contain raw secret values.
+  How authorized actions obtain secrets is an open question (OQ-13).
 
 ## Open questions blocking specification
 
-The questions below must be resolved before field-level specification
-begins. Full descriptions are in
+The questions below must be resolved before field-level specification of
+the listed protocol begins. Full descriptions are in
 [ADR 0001 § Open questions](../docs/adr/0001-architecture-freeze.md#open-questions).
 
-| Protocol            | Blocking questions                |
-| ------------------- | --------------------------------- |
-| All                 | OQ-1, OQ-2, OQ-3, OQ-4            |
-| Task Capsule        | OQ-14, OQ-15, OQ-16               |
-| Action IR           | OQ-10, OQ-11                      |
-| Capability Manifest | OQ-5, OQ-6, OQ-7, OQ-8, OQ-9      |
-| Evidence Receipt    | OQ-17, OQ-18, OQ-19, OQ-20, OQ-21 |
+| Protocol            | Blocking questions                             |
+| ------------------- | ---------------------------------------------- |
+| All                 | OQ-1, OQ-2, OQ-3, OQ-4                         |
+| Task Capsule        | OQ-5, OQ-13, OQ-14, OQ-15, OQ-16               |
+| Action IR           | OQ-5, OQ-8, OQ-9, OQ-10, OQ-11, OQ-13          |
+| Capability Manifest | OQ-5, OQ-6, OQ-7, OQ-8, OQ-9, OQ-10            |
+| Evidence Receipt    | OQ-5, OQ-13, OQ-17, OQ-18, OQ-19, OQ-20, OQ-21 |
+
+Why each dependency exists:
+
+- **OQ-5 (identity)** blocks every protocol that names an actor: the
+  principal of a task, the proposer of an action, the holder of a
+  capability, the signer of a receipt.
+- **OQ-8 (risk)** and **OQ-10 (effectful)** block Action IR and Capability
+  Manifest. Capabilities and risk assessment both apply to proposed
+  actions, so these definitions must agree.
+- **OQ-9 (approval)** blocks Action IR because an approval must be bound to
+  the exact action it approves.
+- **OQ-13 (secrets)** blocks:
+  - Action IR, which must not carry raw secret values,
+  - Task Capsule, whose state must be portable without leaking secrets,
+  - Evidence Receipt, whose evidence must be verifiable without exposing
+    secrets.
 
 ## Planned layout
 

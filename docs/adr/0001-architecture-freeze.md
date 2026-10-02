@@ -4,6 +4,10 @@
 - **Date:** 2026-10-02
 - **Phase:** 0 — repository foundation and architecture documentation
 
+This ADR stays **Proposed** until a maintainer explicitly accepts it. The
+status change will be made in a separate change that records that
+acceptance.
+
 ## Context
 
 Proof Runtime is intended to be vendor-neutral execution and trust
@@ -18,8 +22,12 @@ host, programming language and industry.
 
 ## Decision
 
-The following are frozen for the v0.1 foundation. Any change requires a new
-ADR that supersedes the relevant part of this one.
+This ADR proposes freezing the following for the v0.1 foundation.
+
+- **While this ADR is Proposed:** the items below may be revised in review by
+  amending this ADR.
+- **Once it is accepted:** any change requires a new ADR that supersedes the
+  relevant part of this one.
 
 ### 1. Four planes
 
@@ -42,16 +50,18 @@ deliberately does **not** define their fields, encodings or schemas.
 
 ### 3. Invariants
 
-The ten invariants in [docs/invariants.md](../invariants.md) are
-non-negotiable, including the rule that a model must never directly
-transition an executing task to verified completion.
+Ten invariants are adopted. [docs/invariants.md](../invariants.md) is their
+detailed specification. They include the rule that a model must never
+directly transition an executing task to verified completion.
 
 ### 4. Integration grades
 
 Three integration grades are recognized: **Observer**, **Integrated** and
-**Managed**. They are defined in
+**Managed**. They are described in
 [docs/architecture/overview.md](../architecture/overview.md#integration-grades).
-The runtime claims enforcement only within the boundary it actually controls.
+Records must identify the integration grade and the actual enforcement
+boundary under which each action ran. The runtime claims enforcement only
+within the boundary it actually controls.
 
 ### 5. Meaning of "proof"
 
@@ -61,37 +71,45 @@ not mean formal correctness proofs for arbitrary AI outputs.
 ## Consequences
 
 - Later specification work must fit within the four planes and four
-  protocols. If it cannot, a new ADR is required.
+  protocols. If it cannot, it requires an amendment to this ADR while it is
+  Proposed, or a new ADR after acceptance.
 - Documentation and future code must state the enforcement boundary of any
   guarantee they describe.
-- Several fundamental technical decisions remain open (below). They must be
-  resolved, each through its own ADR, before the affected protocol is
-  specified.
+- Several fundamental technical decisions remain open (below). Each must be
+  resolved through its own ADR or specification decision before the
+  affected protocol is specified.
 - No runtime implementation is authorized by this ADR.
 
 ## Terms identified for review
 
 The documentation uses the following terms to describe the architecture.
-They are **not** listed among the frozen plane components or protocols. They
-are identified here so reviewers can decide whether any should become
+They are **not** among the plane components, protocols or invariants
+proposed for freeze above, and this
+ADR does not promote them to architectural primitives. They are listed here
+with working definitions so reviewers can decide whether any should become
 explicit primitives, be renamed, or stay purely descriptive.
 
-| Term                   | Where used                     | Current treatment                                                            |
-| ---------------------- | ------------------------------ | ---------------------------------------------------------------------------- |
-| Model / agent harness  | overview, invariants           | Descriptive: source of proposals and claims, outside the runtime's authority |
-| Host                   | overview, invariants           | Descriptive: environment in which actions take effect                        |
-| Principal              | overview                       | Descriptive: identity with authority; relates to CONTROL › Identity          |
-| External approver      | overview, invariants           | Descriptive: principal giving authorization; relates to CONTROL › Approval   |
-| Verifier               | overview                       | Descriptive: function within TRUST › Verification                            |
-| Enforcement boundary   | overview, invariants, SECURITY | Descriptive: the region the runtime actually controls                        |
-| Integration grade      | all architecture docs          | Specified by the Phase 0 brief; not a plane component                        |
-| Effectful action       | invariants                     | Used by I7; the precise definition is an open question                       |
-| Verified completion    | invariants, overview           | Task outcome; the full lifecycle state set is an open question               |
-| Host-attested evidence | overview, invariants           | Descriptive: evidence whose provenance is the host, not the runtime          |
+| Term                   | Working definition                                                                                    | Where used                            | Related                    |
+| ---------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------- | -------------------------- |
+| Model / agent harness  | Model: an AI model producing proposals and claims. Agent harness: the software that drives it and turns its output into proposed actions | overview, invariants                  | I1, I2                     |
+| Host                   | The environment in which actions take effect                                                          | overview, invariants                  | I5                         |
+| Principal              | A human or system identity on whose behalf, or with whose authority, a task runs                     | overview, invariants                  | CONTROL › Identity, OQ-5   |
+| External approver      | A principal outside the requesting actor who authorizes privilege expansion or approves high-risk actions | overview, invariants                  | CONTROL › Approval, I8, I9 |
+| Verifier               | The function that evaluates claims against evidence                                                   | overview                              | TRUST › Verification, OQ-18 |
+| Enforcement boundary   | The region within which the runtime can actually prevent or constrain behavior                        | overview, invariants, SECURITY        | I5, OQ-21                  |
+| Control point          | A specific mechanism a host exposes through which the runtime's decision is enforced for the operations that pass through it (Integrated grade) | overview, invariants                  | I5, OQ-21                  |
+| Integration grade      | Observer, Integrated or Managed (defined in §4 of this ADR); not a plane component                    | all architecture documents            | I5                         |
+| Effectful action       | An action with effects beyond the runtime's internal bookkeeping                                      | invariants                            | I7, OQ-10                  |
+| Default deny           | Restatement of I7: an effectful action without a covering capability is denied; not a separate rule  | invariants                            | I7                         |
+| Provenance             | The recorded origin of a piece of data or evidence (runtime, host, tool, model)                      | invariants, overview                  | I4, OQ-17                  |
+| Attestation (attested) | A statement by a party about something the runtime did not itself observe or enforce; e.g. host-attested evidence | invariants, overview                  | I4, I5                     |
+| Decision record        | The recorded result of a CONTROL-plane decision (denial, approval, rejection, authorization)         | overview                              | CONTROL, TRUST › Audit, OQ-6 |
+| Verification outcome   | The result of evaluating claims against evidence; the set of possible outcomes is **not defined** here | invariants, overview                  | I6, OQ-17                  |
+| Verified completion    | The task outcome that only a TRUST-plane verification backed by evidence can establish; the full lifecycle state set is not defined | invariants, overview                  | I6, OQ-14                  |
 
 ## Open questions
 
-These questions are unresolved. Each should be settled by its own ADR or
+These questions are unresolved. Each must be resolved through its own ADR or
 specification decision. They are numbered for reference only, not in order
 of priority.
 
@@ -132,9 +150,10 @@ of priority.
   what happens when compensation itself fails?
 - **OQ-12 Sandbox requirements.** What isolation properties must a sandbox
   provide to support the Managed grade?
-- **OQ-13 Secrets handling.** How are secrets made available to authorized
-  actions without exposing them to model-visible context, evidence or
-  receipts?
+- **OQ-13 Secrets handling.** Raw secret values must not appear in any
+  protocol document, including Action IR. So how are secrets referenced by
+  and supplied to authorized actions, and how are they kept out of
+  model-visible context, evidence and receipts?
 
 ### STATE
 
@@ -150,9 +169,10 @@ of priority.
 
 ### TRUST
 
-- **OQ-17 Verification sufficiency.** What evidence is sufficient to verify a
-  given kind of claim? How are partial verification and conflicting evidence
-  represented?
+- **OQ-17 Verification outcomes and sufficiency.** What set of verification
+  outcomes can a receipt express? What evidence is sufficient to verify a
+  given kind of claim? How are partial verification, conflicting evidence
+  and evidence provenance represented?
 - **OQ-18 Verifier trust.** How is a verifier's own trustworthiness
   established? Can a model act as a verifier, and under what constraints,
   given `MODEL CLAIM != VERIFIED FACT`?
@@ -161,9 +181,9 @@ of priority.
   breaking verifiability?
 - **OQ-20 Audit integrity.** Should the audit log be tamper-evident (for
   example, append-only with hash chaining), and who can read it?
-- **OQ-21 Recording integration grade.** How do Evidence Receipts express the
-  integration grade and enforcement boundary under which evidence was
-  collected?
+- **OQ-21 Recording integration grade.** How do records and Evidence Receipts
+  identify the integration grade, the actual enforcement boundary and, for
+  the Integrated grade, the control points in effect?
 
 ### Project and process
 

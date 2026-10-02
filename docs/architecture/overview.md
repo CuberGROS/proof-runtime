@@ -1,9 +1,15 @@
 # Architecture Overview
 
-> **Status: pre-alpha, Phase 0.** This document describes the intended
-> architecture. Nothing described here is implemented. Protocol fields are
-> not defined. Unresolved decisions are listed in
-> [ADR 0001](../adr/0001-architecture-freeze.md#open-questions).
+> **Status: pre-alpha, Phase 0.** This document explains the intended
+> architecture. Nothing described here is implemented, and protocol fields
+> are not defined.
+>
+> This is an explanatory document. The authoritative sources are
+> [ARCHITECTURE.md](../../ARCHITECTURE.md) (entry point),
+> [ADR 0001](../adr/0001-architecture-freeze.md) (decision record, status:
+> Proposed) and [docs/invariants.md](../invariants.md) (invariants).
+> Unresolved decisions are listed in
+> [ADR 0001 § Open questions](../adr/0001-architecture-freeze.md#open-questions).
 
 ## Purpose
 
@@ -16,22 +22,11 @@ not mean formal correctness proofs for arbitrary AI outputs.
 
 ## Actors and boundaries
 
-The following descriptive terms are used in this document. They are **not**
-new architectural primitives; they are listed for review in
-[ADR 0001](../adr/0001-architecture-freeze.md#terms-identified-for-review).
-
-- **Model**: any AI model producing proposals and claims. Treated as
-  untrusted for authority (see [invariants](../invariants.md)).
-- **Agent harness**: the software that drives a model in a loop and turns its
-  output into proposed actions.
-- **Host**: the environment in which actions take effect (for example, a
-  developer machine, a CI system, or a cloud service).
-- **Principal**: a human or system identity on whose behalf, or with whose
-  authority, a task runs.
-- **External approver**: a principal outside the requesting actor who can
-  authorize privilege expansion or approve high-risk actions.
-- **Verifier**: the TRUST-plane function that evaluates claims against
-  evidence.
+This document uses descriptive terms such as **model / agent harness**,
+**host**, **principal**, **external approver**, **verifier**, **control
+point** and **enforcement boundary**. They are **not** new architectural
+primitives. Their working definitions are in
+[ADR 0001 § Terms identified for review](../adr/0001-architecture-freeze.md#terms-identified-for-review).
 
 ## The four planes
 
@@ -115,8 +110,9 @@ Carries out **authorized** actions and contains their effects.
   compensation.
 - **Sandbox**: an isolated environment that bounds effects, where the
   integration grade allows.
-- **Secrets**: credentials made available to authorized actions. Whether and
-  how secrets are kept out of model-visible context is an open question.
+- **Secrets**: credentials made available to authorized actions. Raw secret
+  values never appear in protocol documents. How secrets are supplied, and
+  kept out of model-visible context, is an open question (OQ-13).
 - **Effects**: the observable changes an action makes, recorded as evidence.
 
 ### STATE plane
@@ -145,23 +141,17 @@ Establishes **what actually happened** and **what can be believed**.
 - **Audit**: a durable record of decisions, actions and outcomes, for later
   review.
 
-## Core protocols
-
-| Protocol            | Primary plane | Intended role                                                                 |
-| ------------------- | ------------- | ----------------------------------------------------------------------------- |
-| Task Capsule        | STATE         | Portable task identity, goal and state, usable across models and hosts        |
-| Action IR           | EXECUTION     | Host-neutral intermediate representation of a proposed action                 |
-| Capability Manifest | CONTROL       | Explicit statement of the capabilities an actor holds and their scope         |
-| Evidence Receipt    | TRUST         | Machine-verifiable record linking actions, evidence, claims and verification  |
-
-All four must be **model-neutral**, **host-neutral**, **versioned** and
-**extensible**. No fields are defined yet; see
+The four core protocols are named alongside the components they express
+above. Their intended roles, requirements and blocking questions are in
 [spec/README.md](../../spec/README.md).
 
 ## Action lifecycle
 
 The following flow shows how a proposed action is handled. It describes
 intended behavior, not an implemented API.
+
+In the diagram, a `break` block marks a point where the flow **ends**:
+nothing after it happens for that action.
 
 ```mermaid
 sequenceDiagram
@@ -175,44 +165,52 @@ sequenceDiagram
     M->>C: Propose action (Action IR)
     C->>C: Check identity, capability, policy and risk
 
-    alt No capability, or policy denies
-        C-->>M: Denied (decision recorded)
-    else Capability present and policy permits
-        opt Privilege expansion or high-risk action
-            C->>A: Request authorization / approval
-            A-->>C: Approval
-        end
-        C->>E: Authorized action
-        E->>E: Execute within a transaction
-        opt Transaction fails
-            E->>E: Roll back or compensate
-        end
-        E->>T: Effects and evidence
-        M->>T: Claim (for example, "step complete")
-        T->>T: Verify claims against evidence
-        T-->>M: Evidence Receipt (verified, unverified or failed)
+    break No capability, or policy denies
+        C-->>M: Denied (decision recorded, nothing executes)
     end
+
+    opt Privilege expansion or high-risk action
+        C->>A: Request authorization / approval
+        break Approver rejects
+            A-->>C: Rejected (decision recorded)
+            C-->>M: Denied (nothing executes)
+        end
+        A-->>C: Approved (decision recorded)
+    end
+
+    C->>E: Authorized action
+    E->>E: Execute within a transaction
+    opt Transaction fails
+        E->>E: Roll back or compensate
+    end
+    E->>T: Effects and evidence
+
+    M->>T: Claim (for example, "step complete")
+    T->>T: Verify claims against evidence
+    T-->>M: Evidence Receipt with verification outcome
 ```
 
 Notes on the flow:
 
-1. A denied action is recorded and nothing executes.
-2. If the external approver rejects the request, the action is treated as
-   denied and does not proceed to execution. For brevity, the diagram does
-   not show this branch.
-3. A model's claim never changes task status to verified by itself. Only the
+1. If there is no capability, or policy denies, the denial is recorded and
+   nothing executes.
+2. A request that needs external authorization or approval has two
+   outcomes, and both are recorded. **Approved** continues to execution.
+   **Rejected** ends the flow; the action never reaches the EXECUTION plane.
+3. A model's claim never changes task status to verified by itself. Only a
    verification outcome in the TRUST plane can do that, and only when
-   evidence supports the claim.
+   evidence supports the claim. The set of possible verification outcomes
+   is not yet defined (OQ-17).
 4. Rollback or compensation, and whether it succeeded, are part of the
    evidence.
 
 ### Task completion
 
-The lifecycle states and transitions of a task are **not yet defined** (see
-the open questions). One constraint is fixed now: a model may claim
-that a task is complete, but **a model must never directly transition an
-executing task to verified completion**. That transition requires a
-verification outcome from the TRUST plane, backed by evidence.
+The lifecycle states and transitions of a task are **not yet defined**
+(OQ-14). One constraint is fixed now: a model may claim that a task is
+complete, but **a model must never directly transition an executing task to
+verified completion**. That transition requires a verification outcome from
+the TRUST plane, backed by evidence.
 
 ## Integration grades
 
@@ -220,22 +218,25 @@ The runtime can be integrated with a host at three grades. Each grade
 defines an **enforcement boundary**: the region within which the runtime can
 actually prevent or constrain behavior. The runtime never claims an
 enforcement guarantee outside that boundary (`HOST SUPPORT != ENFORCEMENT`).
+The table describes design intent; nothing is implemented yet.
 
-| Grade          | Who executes actions                                  | What the runtime can guarantee                                                                                                | What it cannot guarantee                                                                    |
-| -------------- | ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| **Observer**   | The host, without consulting the runtime              | Accurate recording of what it was told and what it independently observed; verification of claims against available evidence | That any action was authorized, prevented or contained                                      |
-| **Integrated** | The host, after consulting the runtime for decisions  | That it issued and recorded its decisions; verification of claims against available evidence                                  | That the host honored the decisions; host compliance is attested by the host, not enforced  |
-| **Managed**    | The runtime, inside an execution boundary it controls | Enforcement of capability, policy and approval decisions for actions inside that boundary                                     | Anything that happens outside that boundary                                                 |
+| Grade          | Who executes actions                                                 | What the runtime is designed to do                                                                                                                                                                         | What it does not guarantee                                                                                                                                                                                     |
+| -------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Observer**   | The host, without consulting the runtime                             | Record the reports it receives and what it can independently observe. Evaluate claims against that evidence.                                                                                              | That any action was authorized, prevented or contained. That host reports are complete or accurate; they are host-attested.                                                                                   |
+| **Integrated** | The host, consulting the runtime through control points it exposes   | Issue and record decisions. Enforce those decisions through the specific control points the host exposes, for the operations that pass through them. Evaluate claims against the evidence it receives.   | Mediation of operations that do not pass through those control points. Whether all relevant operations pass through them depends on the host, not the runtime. Host behavior outside those points is host-attested at most. |
+| **Managed**    | The runtime, inside an execution boundary it controls                | Enforce capability, policy and approval decisions for actions inside that boundary.                                                                                                                       | Anything that happens outside that boundary.                                                                                                                                                                  |
 
 Consequences:
 
-- Records produced by the runtime should indicate the integration grade
-  under which each action ran. That way, a consumer of an Evidence Receipt
-  can tell enforced facts apart from observed or attested ones.
+- Records must identify the integration grade and the actual enforcement
+  boundary under which each action ran. For the Integrated grade, they must
+  also identify which control points were in effect. Then a consumer of an
+  Evidence Receipt can tell enforced facts apart from observed or attested
+  ones. How this is encoded is an open question (OQ-21).
 - Evidence supplied by a host is host-attested. It is not runtime-observed,
   and it is weighed as such (`TOOL OUTPUT != TRUSTED FACT`).
 - Moving a task between hosts can change its integration grade. How a Task
-  Capsule handles that change is an open question.
+  Capsule handles that change is an open question (OQ-16).
 
 ## Recovery
 
@@ -247,7 +248,7 @@ Recovery uses the STATE and TRUST planes together:
   verified. Those steps do not need to be re-executed or re-trusted.
 - **Rollback or compensation** handles the effects of failed transactions.
 
-The exact recovery semantics are open questions.
+The exact recovery semantics are open questions (OQ-11, OQ-16).
 
 ## Non-goals
 

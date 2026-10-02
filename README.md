@@ -37,40 +37,22 @@ support.
 
 ## Architecture at a glance
 
-The architecture is organized into four planes and four core protocols. See
-[ARCHITECTURE.md](ARCHITECTURE.md) and
-[docs/architecture/overview.md](docs/architecture/overview.md) for details and
-diagrams.
+The architecture has four planes (**CONTROL**, **EXECUTION**, **STATE** and
+**TRUST**) and four core protocols (**Task Capsule**, **Action IR**,
+**Capability Manifest** and **Evidence Receipt**). The protocols are
+required to be model-neutral, host-neutral, versioned and extensible. Their
+fields are **not yet specified**.
 
-| Plane     | Responsibilities                                |
-| --------- | ----------------------------------------------- |
-| CONTROL   | Identity, Policy, Capability, Risk, Approval    |
-| EXECUTION | Action, Transaction, Sandbox, Secrets, Effects  |
-| STATE     | Task Capsule, Checkpoint, Context, Memory       |
-| TRUST     | Evidence, Claims, Verification, Receipts, Audit |
-
-| Protocol            | Purpose (summary)                                        |
-| ------------------- | -------------------------------------------------------- |
-| Task Capsule        | Portable representation of a task and its state          |
-| Action IR           | Host-neutral representation of a proposed action         |
-| Capability Manifest | Explicit statement of what an actor is permitted to do   |
-| Evidence Receipt    | Verifiable record linking execution, evidence and claims |
-
-All four protocols are required to be model-neutral, host-neutral, versioned
-and extensible. Their fields are **not yet specified**; see
-[spec/README.md](spec/README.md).
+[ARCHITECTURE.md](ARCHITECTURE.md) is the canonical entry point to the
+architecture. It lists each plane's components and says which document holds
+the authoritative text for each topic.
 
 ## Core invariants
 
-The architecture is anchored by a set of non-negotiable invariants, including:
-
-- `MODEL != AUTHORITY`
-- `MODEL CLAIM != VERIFIED FACT`
-- `NO EVIDENCE -> NO VERIFIED COMPLETION`
-- `NO CAPABILITY -> NO EFFECTFUL ACTION`
-
-The full list, with rationale and scope, is in
-[docs/invariants.md](docs/invariants.md).
+The architecture rests on a set of invariants, among them
+`MODEL != AUTHORITY`, `MODEL CLAIM != VERIFIED FACT` and
+`NO EVIDENCE -> NO VERIFIED COMPLETION`. The full list, with rationale and
+scope, is in [docs/invariants.md](docs/invariants.md).
 
 ## Integration grades
 
@@ -79,6 +61,13 @@ Proof Runtime distinguishes three grades of integration with a host:
 enforcement boundary, and the runtime claims enforcement only inside the
 boundary it actually controls. See
 [docs/architecture/overview.md](docs/architecture/overview.md#integration-grades).
+
+## Decision status
+
+The architecture boundaries are proposed for freeze in
+[ADR 0001](docs/adr/0001-architecture-freeze.md). Its status is
+**Proposed**: the boundaries become frozen only after a maintainer
+explicitly accepts it.
 
 ## Repository layout
 

@@ -24,14 +24,21 @@ and in **Phase 0**: repository foundation and architecture documentation.
 
 ## Changing the architecture
 
-The four planes, the four core protocols and the invariants are frozen by
-[ADR 0001](docs/adr/0001-architecture-freeze.md). To change any of them:
+The four planes, the four core protocols and the invariants are proposed for
+freeze in [ADR 0001](docs/adr/0001-architecture-freeze.md). Its status is
+**Proposed** until a maintainer explicitly accepts it.
 
-1. Open an issue describing the problem and the proposed change.
-2. Submit a new ADR in `docs/adr/` using the next free number
-   (`NNNN-short-title.md`). ADRs are never renumbered or deleted; a
-   superseded ADR is marked as such and links to its replacement.
-3. Update every affected document in the same pull request.
+- **While ADR 0001 is Proposed:** propose changes as amendments to ADR 0001
+  in a reviewed pull request.
+- **After ADR 0001 is accepted:** to change any of them:
+  1. Open an issue describing the problem and the proposed change.
+  2. Submit a new ADR in `docs/adr/` using the next free number
+     (`NNNN-short-title.md`). ADRs are never renumbered or deleted; a
+     superseded ADR is marked as such and links to its replacement.
+
+In either case, edit the authoritative document for the topic first (see
+[ARCHITECTURE.md § Document roles](ARCHITECTURE.md#document-roles)). Then
+update any summaries that link to it in the same pull request.
 
 A change that introduces a **new architectural primitive** (a new plane
 component, a new protocol, or a new invariant) must say so explicitly in the
