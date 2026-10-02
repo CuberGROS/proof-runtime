@@ -1,0 +1,37 @@
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor and IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local environment and secrets (never commit these)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+secrets/
+
+# Logs and temporary files
+*.log
+tmp/
+.tmp/
+
+# Generated build output (no build exists yet; listed defensively)
+/target/
+/build/
+/dist/
+/out/
+node_modules/
+__pycache__/
+*.pyc
+coverage/
