@@ -1,9 +1,16 @@
 # ADR 0003: Shared Protocol Blocker Decisions
 
-- **Status:** Proposed
+- **Status:** Accepted in part. D7, D8 and D9 are Accepted. D6 is
+  Proposed: the owner has selected it, but its acceptance is conditional
+  on verified control of the selected domain (D6.9).
 - **Date:** 2026-10-02
+- **Accepted:** D7, D8 and D9 on 2026-10-02, by the repository owner and
+  maintainer (@CuberGROS), who directed the remaining design choices
+  recorded below
 - **Phase:** 1B — shared blocker decisions
-- **Proposes resolutions for:** OQ-26 and OQ-29 from
+- **Resolves:** OQ-5 (D8), OQ-27 (D7) and OQ-29 (D9)
+- **Still open:** OQ-26 (D6), until the conditions in D6.9 are met
+- **Addresses:** OQ-26 and OQ-29 from
   [ADR 0002](0002-shared-protocol-foundations.md#new-open-questions), and
   OQ-5 and OQ-27 (OQ-5 from
   [ADR 0001](0001-architecture-freeze.md#open-questions), OQ-27 from ADR
@@ -11,28 +18,33 @@
 - **Does not change:** ADR 0001, ADR 0002, the four planes, the four core
   protocols, the ten invariants or the three integration grades
 
-This ADR is **Proposed**. It resolves nothing until it is accepted.
+Acceptance is recorded separately for each decision:
+
+| Decision | Question | Status |
+|---|---|---|
+| D6 | OQ-26 | **Proposed.** Option A and the root `https://cubergo.space/proof-runtime` are selected by the owner. Acceptance, and resolution of OQ-26, wait for verified control of `cubergo.space` (D6.9). |
+| D7 | OQ-27 | **Accepted** 2026-10-02. OQ-27 is resolved. |
+| D8 | OQ-5 | **Accepted** 2026-10-02, with PC-1 option β and PC-2 option P2. OQ-5 is resolved. |
+| D9 | OQ-29 | **Accepted** 2026-10-02, with option G. OQ-29 is resolved. |
 
 - **Four independent decisions.** D6 (OQ-26), D7 (OQ-27), D8 (OQ-5) and
   D9 (OQ-29) each carry their own status, rationale, alternatives, security
-  implications, dependencies and acceptance criteria. The repository owner
-  may accept, amend or reject each one separately.
+  implications, dependencies and acceptance criteria.
 - **No question is resolved until accepted.** An open question is resolved
-  only when the repository owner explicitly accepts the decision that
-  addresses it, and that acceptance is recorded in this ADR. Until then,
-  every question listed above remains open, and the
-  [dependency map](../protocols/dependency-map.md) continues to show it as
-  blocking.
-- **Owner decisions.** Where a choice belongs to the owner, the decision
-  says so under **Owner decision required**. In particular, D6 does not
-  select a domain, register a namespace or fix the type-URI authority.
+  only when the repository owner accepts the decision that addresses it,
+  and that acceptance is recorded in this ADR. OQ-26 therefore remains
+  open, and the [dependency map](../protocols/dependency-map.md) continues
+  to show it as blocking.
+- **Owner choices.** The choices the owner made are recorded in each
+  decision. D6 records the owner-selected root, but this ADR does not
+  register a domain or treat the domain's control as verified.
 - **Numbering.** Decisions are numbered D6 to D9, continuing ADR 0002's D1
   to D5, so that a decision number such as "D7.2" is unambiguous across the
   two ADRs.
 
 Supporting analysis:
 [shared-blockers-analysis.md](../protocols/shared-blockers-analysis.md).
-It gives the requirements, full alternatives, evidence, proposed
+It gives the requirements, full alternatives, evidence, prose
 conformance cases and source verification for each decision.
 
 The key words "MUST", "MUST NOT", "SHOULD", "SHOULD NOT" and "MAY" in the
@@ -75,24 +87,32 @@ it:
 
 ### D6. Identifier namespace (OQ-26)
 
-**Status: Proposed.** Not accepted. OQ-26 remains open.
+**Status: Proposed.** The owner has selected option A with the root
+`https://cubergo.space/proof-runtime`. D6 is not yet accepted, and OQ-26
+remains open, because control of `cubergo.space` has not been verified
+(D6.9).
 
 1. **Authority.** The core namespace root (`{root}`) MUST be under an
    authority that the project itself controls, as OQ-26 requires
    (ADR 0002). Two forms meet that requirement:
-   - **A (proposed):** an `https` URI under a DNS domain that the project
-     controls. `{root}` is `https://{domain}/{base}`.
-   - **C (alternative):** a `tag:` URI (RFC 4151) whose tagging entity is a
+   - **A (selected by the owner):** an `https` URI under a DNS domain that
+     the project controls. `{root}` is `https://{domain}/{base}`.
+   - **C (alternative, not selected):** a `tag:` URI (RFC 4151) whose tagging entity is a
      DNS domain the project controls on the minting date. `{root}` is
      `tag:{domain},{YYYY-MM-DD}:{base}`, where `{domain}` is the full DNS
      name of that tagging entity. Email addresses are not used as tagging
      entities. It meets the control requirement only under the conditions
      in D6.8.
 
-   **Owner decision required:** this ADR does not choose or register a
-   domain, does not choose a minting date and does not fix `{root}`. The
-   owner chooses A or C, and records `{domain}`, `{base}` and, under C, the
-   date.
+   **Owner selection.** The owner has selected option A, with `{domain}`
+   = `cubergo.space` and `{base}` = `proof-runtime`, giving
+
+   ```text
+   {root} = https://cubergo.space/proof-runtime
+   ```
+
+   This ADR does not register the domain and does not verify its control.
+   `{root}` becomes final only when D6.9 is satisfied and D6 is accepted.
 
    **Options that cannot resolve OQ-26 under this ADR:**
    - A w3id.org identifier (analysis option B) places the URI authority
@@ -107,8 +127,7 @@ it:
      anyway.
    - A formal URN namespace is not recommended now.
 
-   Until the owner records the choice and `{root}` in this ADR, no core
-   identifier is final.
+   Until D6 is accepted, no core identifier is final.
 2. **Identifiers are names, not locators.** No conformant processing step
    dereferences an identifier: consumers and validators MUST NOT
    dereference a type identifier, an extension identifier or a schema
@@ -135,7 +154,12 @@ it:
    rules. Comparison remains exact (D1.2). Consumers MUST NOT normalize an
    identifier before comparing it.
 4. **Template.** Under whichever authority is chosen:
-   - a core type identifier MUST have the form `{root}/{protocol}/v{MAJOR}`,
+   - a core type identifier MUST have the form `{root}/{protocol}/v{MAJOR}`.
+     The only exception is a form-specific identifier that an accepted
+     protocol specification defines under D9.2, which MUST have the form
+     `{root}/evidence-receipt/{form}/v{MAJOR}`. `{form}` is a single path
+     segment, and `{MAJOR}` is the Evidence Receipt protocol's major
+     version (D9.9),
    - a core extension identifier MUST have the form
      `{root}/ext/{name}/v{MAJOR}`,
    - a schema `$id` SHOULD have the form
@@ -143,9 +167,9 @@ it:
 
    `{protocol}` is one of `task-capsule`, `action-ir`,
    `capability-manifest` and `evidence-receipt`. `{MAJOR}` and `{MINOR}`
-   use the D2.2 component syntax. A form segment within a protocol, if the
-   Evidence Receipt specification needs one under D9.2, has the form
-   `{root}/evidence-receipt/{form}/v{MAJOR}`.
+   use the D2.2 component syntax. Under the selected root, for example, the
+   Action IR major version 1 type identifier would be
+   `https://cubergo.space/proof-runtime/action-ir/v1`.
 5. **Minting and recognition.**
    - Only an accepted ADR or an accepted protocol specification may mint an
      identifier in the core namespace.
@@ -155,8 +179,8 @@ it:
    - An identifier's authority confers no trust in, and no information
      about, the producer of a document that carries it. Producer identity
      is D8; authenticity is the OQ-4 residual.
-6. **Durability safeguards** (operational, for option A, and for the
-   domain behind option C until its minting date is fixed):
+6. **Durability safeguards** (operational, for the domain behind the
+   selected root):
    - the domain SHOULD be registered to an organization or role account,
      not to an individual,
    - it SHOULD be renewed for several years at a time, with automatic
@@ -165,12 +189,13 @@ it:
      the namespace,
    - the registration and renewal arrangements SHOULD be recorded in the
      repository.
-7. **Placeholder.** Until `{root}` is recorded, drafts MUST use
+7. **Placeholder.** Until D6 is accepted, drafts MUST use
    `https://example.invalid/proof-runtime` as `{root}`. A published
    specification version MUST NOT contain the placeholder, and an
    implementation release MUST NOT bundle it as a recognized identifier.
-8. **Conditions for option C.** A `tag:` root meets the control requirement
-   only if all of the following hold:
+8. **Conditions for option C.** These conditions apply only if a later
+   decision selects option C instead of option A. A `tag:` root meets the
+   control requirement only if all of the following hold:
    - the tagging entity is a DNS domain the project controls. Email
      addresses are not eligible (D6.1),
    - `{root}` names that exact domain, so the identifier identifies the
@@ -187,6 +212,36 @@ it:
    to mint identifiers with that date. A lapse then affects only
    documentation discoverability, never ownership of existing identifiers
    or any consumer decision (D6.2).
+9. **Verification of control.** D6 can be accepted only after the
+   following evidence is recorded in the repository. DNS resolution,
+   historical ownership claims and repository membership are not, on their
+   own, evidence of control.
+   - **Registrar evidence.** A current registration record for
+     `cubergo.space`, from the registry's RDAP or WHOIS service or from the
+     registrar account, showing that the domain is active (not pending
+     deletion or in redemption), its expiry date, its transfer-lock status,
+     and that the registrant or registrar account holder is the repository
+     owner or the project. Where registry data is redacted, a statement
+     from the registrar account, recorded by the owner, takes its place.
+   - **Control challenge.** A DNS `TXT` record at
+     `_proof-runtime.cubergo.space` with the value
+     `proof-runtime-namespace=github.com/CuberGROS/proof-runtime`, observed
+     by a reviewer other than the record's author, with the observation
+     date recorded. This ties current DNS control to this repository.
+   - **No conflicting namespace.** The owner's confirmation that nothing is
+     published, or reserved for another purpose, under
+     `https://cubergo.space/proof-runtime`, and that the path is reserved
+     for this namespace.
+   - **Durability.** The registration and renewal arrangements required by
+     D6.6, recorded in the repository.
+
+   **Verification attempted when this decision was recorded** (2026-10-02):
+   - the domain resolved through the session's resolver,
+   - RDAP, WHOIS and HTTPS access to the domain were blocked by the
+     session's network policy,
+   - a web search found no published content for the domain.
+
+   None of this establishes control. Every item above is still outstanding.
 
 **Rationale.** Under D6.2, losing control of a domain cannot change any
 conformant consumer's decision. What remains is the social-engineering
@@ -211,30 +266,37 @@ authority.
 - An authority the project does not control would let a third party
   redirect, deny or reassign the namespace. D6.1 excludes it.
 
-**Unresolved dependencies.** The owner decision in D6.1. The form segment
-in D9.2.
+**Unresolved dependencies.** The evidence in D6.9. The form segment in
+D9.2.
 
 **Acceptance criteria.** D6 can be accepted, and OQ-26 marked resolved,
-only when the owner has:
-- chosen option A or C. Option B cannot resolve OQ-26 under this ADR; it
-  would need a new ADR that changes the control requirement,
-- recorded `{root}` in this ADR, and confirmed that the domain is
-  registered to the chosen registrant. Under option C, the owner has also
-  recorded the evidence of control on the minting date (D6.8),
-- confirmed or amended D6.2 to D6.8.
-
-The owner may accept D6.2 to D6.8 before choosing an authority. In that
-case OQ-26 remains open until D6.1 is completed.
+only when:
+- the owner has chosen option A or C. **Met:** option A, with `{root}` =
+  `https://cubergo.space/proof-runtime`. Option B cannot resolve OQ-26
+  under this ADR; it would need a new ADR that changes the control
+  requirement,
+- the owner has confirmed D6.2 to D6.8. **Met:** confirmed as design
+  choices,
+- every item of evidence in D6.9 is recorded. **Not met.**
 
 ### D7. Protocol resource limits (OQ-27)
 
-**Status: Proposed.** Not accepted. OQ-27 remains open.
+**Status: Accepted** on 2026-10-02 by the repository owner. OQ-27 is
+resolved. These are specification limits. They are not claims of measured
+runtime performance: benchmarks and executable conformance tests belong to
+implementation.
 
 1. **Two tiers.** There is one shared **ceiling**, independent of protocol
    (D7.3). Each protocol specification MUST state its own limit for every
-   measure in D7.2, at or below the ceiling. Where a specification states
-   no tighter value, the ceiling is that protocol's limit. This satisfies
-   D1.4.
+   measure in D7.2.
+   - **Document size and nesting depth** MUST equal the shared ceiling in
+     every protocol. Only then can a consumer reject a document exceeding
+     its protocol's size or depth before any further processing, as
+     ADR 0002 D1.4 requires, without first identifying the protocol
+     (Stages 0 and 1, D7.4).
+   - **Every other measure** MAY be set at or below the ceiling. Where a
+     specification states no tighter value, the ceiling is that protocol's
+     limit. Tighter values are enforced at Stage 2.
 2. **Measures.** Each measure is defined exactly so that every language
    gives the same answer:
    - **Document size:** the number of bytes in the JSON text as received.
@@ -310,10 +372,17 @@ case OQ-26 remains open until D6.1 is completed.
    non-streaming implementation conforms only if it enforces Stage 0 before
    parsing, and its parser cannot exhaust the stack on any document within
    the structural ceilings.
-5. **Limits and versions.** A protocol's limits are fixed for each major
-   version. Changing them requires a new major version (D2.3); D2.4 permits
-   no such change in a minor version. Raising the ceiling requires a new
-   ADR.
+5. **Limits and versions.**
+   - A protocol's limits are fixed for each major version. Changing them
+     requires a new major version (D2.3); D2.4 permits no such change in a
+     minor version.
+   - Any change to the shared ceiling, raising or lowering, requires a new
+     ADR.
+   - An ADR that lowers a ceiling MUST be coordinated with every published
+     protocol major version whose limits exceed the new value. It MUST NOT
+     make documents that are valid under a published version invalid. It
+     MUST keep ADR 0002 D1.4 satisfied: size and depth must still be
+     rejectable before any further processing.
 6. **Local stricter refusal.** A consumer MAY refuse a document that is
    within all limits for local resource reasons. It MUST then:
    - record the refusal as a local resource refusal, distinct from
@@ -359,16 +428,18 @@ justification for each row in
   Evidence Receipt specification and OQ-19. A reference left unresolved
   because a budget ran out is unverifiable, never verified (C5).
 
-**Acceptance criteria.** D7 can be accepted, and OQ-27 marked resolved,
-when the owner:
-- confirms or amends each ceiling value in D7.3,
-- confirms the measures in D7.2,
-- confirms that limits change only with a new major version (D7.5),
-- confirms the local-refusal rule (D7.6).
+**Acceptance criteria.** Met on 2026-10-02. The owner confirmed:
+- the ceiling values in D7.3, as the initial normative baseline,
+- the measures in D7.2 and the structural/semantic separation,
+- the validation stages in D7.4,
+- that limits change only with a new major version, and ceilings only
+  through an ADR (D7.5),
+- the local-refusal rule (D7.6).
 
 ### D8. Identity model (OQ-5)
 
-**Status: Proposed.** Not accepted. OQ-5 remains open.
+**Status: Accepted** on 2026-10-02 by the repository owner, with PC-1
+option β (D8.9) and PC-2 option P2 (D8.8, D8.15). OQ-5 is resolved.
 
 1. **Distinct concepts.** The following are distinct, and a protocol
    document MUST NOT let one stand in for another:
@@ -459,8 +530,15 @@ when the owner:
    Identity determines which capabilities and policies apply. It is not
    itself a grant.
 7. **Agents and models are never authority.**
-   - An entity of kind `agent` MUST NOT act as an approver for I8 or I9,
-     grant or expand capabilities, or author policy.
+   - An entity of kind `agent` MUST NOT:
+     - act as an approver for I8 or I9, or approve any privilege
+       expansion,
+     - issue a grant or delegation, to itself or to any other entity,
+     - expand the scope of any capability, its own included,
+     - author policy,
+     - bypass a required approval.
+   - No agent obtains authority by possessing an identity, declaring a
+     capability, or presenting a Capability Manifest.
    - Model descriptors (provider, name, version) and agent
      self-descriptions, such as an A2A Agent Card, are at most
      trusted-attested. They MUST NOT be used to permit or to expand any
@@ -480,10 +558,12 @@ when the owner:
      established for the submitter under D8.5. It is never taken from the
      proposal's content. If the proposal claims a different actor, that
      claim is recorded as self-asserted.
-   - **Direct action.** A human or service entity acting on its own behalf
-     is both actor and principal. Both attributions then carry the same
-     identity reference with the same provenance. No delegation is
-     involved.
+   - **Direct action.** An entity acting on its own behalf is both actor
+     and principal. Both attributions then carry the same identity
+     reference with the same provenance, and no delegation is involved.
+     A human or service entity may act directly. An agent may act directly
+     only under capabilities granted to it externally (D8.15). No
+     delegation is required for a valid direct external grant.
    - **Delegated action.** When the principal differs from the actor,
      CONTROL MUST NOT evaluate the proposal on the principal's behalf unless
      it has validated a delegation from that principal to that actor
@@ -512,33 +592,38 @@ when the owner:
    - **No expansion.**
      - In a delegated action, the available authority is bounded both by
        what the principal holds and by what the delegation grants (I8).
-     - Capabilities the actor holds that do not derive from this delegation
-       MUST NOT be combined with the principal's authority to authorize the
-       proposal.
      - In a delegation chain, a hop contributes to authorization only if
        CONTROL validated that hop. Otherwise it is recorded as
        informational.
-   - **Agents are not principals** (proposed; owner decision required). An
-     entity of kind `agent` is never a principal. Every agent proposal is
-     therefore a delegated action from a human or service principal. The
-     alternative is set out in
-     [analysis § PC-2](../protocols/shared-blockers-analysis.md#pc-2-may-an-agent-be-a-principal).
+   - **No combination.** An actor's own capabilities, including an agent's
+     direct external grants, MUST NOT be combined with a principal's
+     delegated authority. In a delegated action only the principal's
+     authority, as bounded by the delegation, is evaluated.
+   - **Agents as principals** (PC-2 option P2; see
+     [analysis § PC-2](../protocols/shared-blockers-analysis.md#pc-2-may-an-agent-be-a-principal)).
+     An agent is a principal only for its own direct actions under D8.15.
+     An agent MUST NOT be the delegating principal of another actor,
+     because delegating authority would be an agent issuing a grant
+     (D8.7).
    - Delegation scope, attenuation, expiry and revocation are OQ-7.
 9. **Capability holders and approvers.**
    - A Capability Manifest names its holder by identity reference.
      Possessing or presenting a Capability Manifest confers nothing (C7).
    - CONTROL considers a capability for a proposal only if:
-     - in a direct action, the holder is the actor established under D8.5,
+     - in a direct action, the holder is the actor established under D8.5.
+       If that actor is an agent, the capability MUST also trace to an
+       external grant that CONTROL validates (D8.15),
      - in a delegated action, the capability is the principal's and is
-       available through a delegation validated under D8.8.
-   - **Provenance for holder checks** (proposed; owner decision required;
-     alternatives in
+       available through a delegation validated under D8.8. A capability
+       held by the actor is never considered in a delegated action.
+   - **Provenance for holder and delegate checks** (PC-1 option β,
+     accepted; alternatives in
      [analysis § PC-1](../protocols/shared-blockers-analysis.md#pc-1-provenance-required-for-capability-holder-checks)).
      - By default, the identity matched against the holder MUST be
        authenticated.
-     - A trusted-attested identity satisfies a holder check only where
-       CONTROL's configuration explicitly allows that attester to do so for
-       that issuer.
+     - A trusted-attested identity satisfies a holder or delegate check
+       only through an explicit CONTROL configuration scoped to the named
+       issuer and the named attester.
      - Without that explicit allowance, a trusted-attested identity cannot
        satisfy the check, and the proposal is denied for lack of a covering
        capability (I7).
@@ -590,6 +675,25 @@ when the owner:
       the enforcement point receives it directly from CONTROL (D9.4, D9.5).
     - No provenance, authenticated included, turns a record into
       enforcement, or into authorization for any later execution.
+15. **Agent authority through external grants** (PC-2 option P2).
+    - An agent's effective capabilities in a direct action are only those
+      that trace to a grant made explicitly to that agent by an authorized
+      external human or service principal, and that CONTROL validates when
+      it decides. Making such a grant is a privilege expansion, so it
+      requires external authorization (I8).
+    - A grant never gives the agent more than its grantor was authorized
+      to grant. Grants are bounded and revocable. Their representation,
+      scope, attenuation, expiry and revocation are OQ-7. Their
+      interaction with approvals is OQ-9.
+    - A Capability Manifest that names an agent as holder is a declaration
+      (C7). It is not itself an authorization, a grant or a delegation.
+      CONTROL relies on it only to the extent that it validates the
+      external grant behind it.
+    - CONTROL evaluates every proposed effectful action of an agent against
+      the agent's actual effective capabilities, policy, risk and approval
+      requirements (I7, I8, I9). A grant never removes a required approval.
+    - An agent's direct grants are never combined with authority delegated
+      to it by another principal (D8.8).
 
 **Rationale.**
 - Issuer-scoped references match how OIDC and SPIFFE already scope
@@ -625,18 +729,15 @@ identities are all that is available.
 **Unresolved dependencies.**
 - OQ-4 residual: key binding.
 - OQ-6: how policy refers to identities.
-- OQ-7: delegation. Under the proposed rule that agents are never
-  principals (D8.8), a Capability Manifest that names an agent as holder
-  is usable only through a delegation validated under D8.8. Whether such a
-  manifest can itself express that delegation is left to OQ-7. See
-  [analysis § PC-2](../protocols/shared-blockers-analysis.md#pc-2-may-an-agent-be-a-principal).
-- OQ-9: approver eligibility beyond D8.7.
+- OQ-7: the representation, scope, attenuation, expiry and revocation of
+  delegations and of the external grants in D8.15.
+- OQ-9: approver eligibility beyond D8.7, and how grants interact with
+  approval requirements.
 - OQ-18: agents as verifiers.
 - OQ-19: retention and redaction.
 - OQ-21: recording the authentication boundary.
 
-**Acceptance criteria.** D8 can be accepted, and OQ-5 marked resolved,
-when the owner confirms:
+**Acceptance criteria.** Met on 2026-10-02. The owner confirmed:
 - the concept distinctions (D8.1),
 - the `(issuer, subject)` form (D8.2),
 - that every trusted issuer, for every role, never reassigns subjects
@@ -647,13 +748,17 @@ when the owner confirms:
 - the agent and model prohibitions (D8.7),
 - the actor and principal attribution rules, including direct action and
   the delegation rule (D8.8),
-- whether agents may ever be principals (D8.8),
-- the provenance required for holder and approver checks (D8.9),
+- PC-2 option P2: agents may be principals only for direct actions under
+  external grants (D8.8, D8.15),
+- PC-1 option β: authentication by default, trusted attestation only
+  through explicit scoped configuration, and authenticated approvers
+  (D8.9),
 - the separation of recording from enforcement (D8.14).
 
 ### D9. CONTROL decision records (OQ-29)
 
-**Status: Proposed.** Not accepted. OQ-29 remains open.
+**Status: Accepted** on 2026-10-02 by the repository owner, with option
+G. OQ-29 is resolved. CONTROL produces decisions; TRUST records them.
 
 1. **Home.** A CONTROL decision is recorded in an independent **decision
    record**. Its format is specified as a distinct record form within the
@@ -665,9 +770,18 @@ when the owner confirms:
    - is produced by CONTROL when the decision is made, whether or not the
      action executes.
 
-   Denials, approver rejections and permits are all recorded. Whether the
-   form is distinguished by its type identifier (D6.4) or by a core member
-   is left to the Evidence Receipt specification.
+   Every CONTROL decision is recorded, permits and denials alike,
+   including a denial that results from an external approver's rejection.
+   An external approver's approval or rejection is not a CONTROL decision.
+   It is an input. The decision record:
+   - references it by digest (its own record format is OQ-9),
+   - records the approver's identity reference with its D8.5 provenance,
+     attributed to the approver,
+   - keeps the approver's decision distinct from CONTROL's resulting
+     decision.
+
+   Whether the form is distinguished by its type identifier (D6.4) or by a
+   core member is left to the Evidence Receipt specification.
 3. **Bound to the exact proposal and its inputs.** A decision record:
    - MUST reference the Action IR proposal it decides by that proposal's
      content digest,
@@ -680,13 +794,21 @@ when the owner confirms:
      without changing the principal's provenance (D8.8),
    - MUST state explicitly when no identity is available for either role,
      and MUST NOT substitute another identity,
-   - MUST identify its producer.
+   - MUST identify its producer,
+   - MUST record, for a denial, every reason for the denial, such as a
+     missing capability, a policy denial, an approver's rejection or a
+     delegation failure,
+   - MUST carry a decision-instance identifier that CONTROL makes unique
+     for every evaluation, so that two evaluations never produce the same
+     record, even for an identical proposal with identical inputs (D9.5).
+     It SHOULD be generated from at least 128 bits of a cryptographically
+     secure random source. A timestamp alone is not sufficient (C15).
 
    Identity requirements depend on the outcome, not on whether a record is
    kept:
    - A decision is recorded whatever the provenance of its identities.
-     Denials, approver rejections and Observer-grade decisions MUST remain
-     recordable when only trusted-attested or self-asserted identities, or
+     Denials, including denials that follow an approver's rejection, and
+     Observer-grade decisions MUST remain recordable when only trusted-attested or self-asserted identities, or
      none, are available.
    - A permit outcome MUST NOT rest on a self-asserted identity (D8.5). Its
      holder and approver checks follow D8.9.
@@ -702,8 +824,8 @@ when the owner confirms:
    Evidence Receipt, an identity recorded in either, or a copy of any of
    them never authorizes anything.
    - An enforcement point MUST accept authorization only from CONTROL's own
-     evaluation of the exact proposal, received over a channel inside the
-     controlled boundary.
+     current evaluation of the exact proposal, received over a channel
+     inside an actual controlled boundary.
    - That authorization MUST NOT be relayed through the requesting actor,
      model or host.
    - An enforcement point MUST NOT accept any decision record or receipt as
@@ -712,9 +834,15 @@ when the owner confirms:
    - Before executing, the enforcement point MUST confirm that the action
      it is about to execute has the same content digest as the proposal
      CONTROL evaluated.
-   - Each execution attempt requires CONTROL authorization for that
-     attempt. An earlier permit, or its record, MUST NOT authorize a new
-     execution of an identical proposal.
+   - Each execution attempt requires CONTROL's current authorization for
+     that attempt. An earlier permit, or its record, MUST NOT authorize a
+     new execution of an identical proposal.
+   - **Auditable replay.** Every Evidence Receipt that describes an
+     execution attempt MUST reference the decision record that authorized
+     that attempt. A permit decision record authorizes at most one
+     execution attempt. Two execution attempts that reference the same
+     permit decision record are evidence of replay, and MUST NOT be
+     verified as separately authorized.
    - Expiry and single-use semantics are OQ-9.
 6. **No enforcement claims.** A decision record states what CONTROL
    decided. It MUST NOT state or imply that the decision was enforced.
@@ -784,7 +912,7 @@ See
   credentials. It can mislead an audit only until signing exists (D9.8,
   D3.7).
 
-**Effect if accepted.**
+**Effect of acceptance.**
 - Action IR is no longer conditionally blocked by OQ-29.
 - The Evidence Receipt specification must define the decision-record
   form.
@@ -796,8 +924,7 @@ See
 - OQ-21: recording the grade and boundary.
 - OQ-4 residual: authenticity.
 
-**Acceptance criteria.** D9 can be accepted, and OQ-29 marked resolved,
-when the owner confirms:
+**Acceptance criteria.** Met on 2026-10-02. The owner confirmed:
 - that a decision-record form within the Evidence Receipt protocol is
   within that protocol's frozen purpose, and is not a fifth core protocol
   (D9.1, D9.9),
@@ -805,25 +932,31 @@ when the owner confirms:
 - the not-a-credential and exact-action rules (D9.4, D9.5),
 - that no execution-bound Action IR form is introduced (D9.7).
 
-If the owner does not accept the reading in the first point, the
-alternative that complies with ADR 0001 is option B-int. It gives up
-third-party auditability.
+The owner accepted option G, and with it the reading that a
+decision-record form fits within the Evidence Receipt's frozen purpose. No
+fifth core protocol and no execution-bound Action IR form is authorized.
 
 ## Consequences
 
-If all four decisions are accepted:
+With D7, D8 and D9 accepted:
 
-- Every protocol can carry a final type identifier, once `{root}` is
-  recorded, and has stated limits.
-- Every protocol can name actors without conflating identity and authority.
-- Evidence Receipts and decision records have a defined relationship.
-- Field-level specification still requires the per-protocol questions in
-  the dependency map, and explicit authorization of that phase.
+- Every protocol has stated limits and a defined validation order (D7).
+- Every protocol can name actors without conflating identity, authority,
+  recording and enforcement (D8).
+- Evidence Receipts and decision records have a defined relationship, and
+  OQ-29 no longer blocks Action IR (D9).
 - Implementations need a streaming or bounded pre-parse check of the
-  ceiling (D7.4), in addition to the components ADR 0002 already requires.
+  structural ceilings (D7.4), in addition to the components ADR 0002
+  already requires.
 
-If only some decisions are accepted, the others remain open and continue to
-block as shown in the dependency map.
+While D6 remains Proposed:
+
+- OQ-26 stays open and still blocks every protocol, because no core type
+  identifier is final.
+- Drafts use the placeholder root (D6.7).
+
+Field-level specification still requires the per-protocol questions in the
+dependency map, and explicit authorization of that phase.
 
 ## Preservation of ADR 0001 and ADR 0002
 
@@ -842,36 +975,36 @@ block as shown in the dependency map.
 | I9 `HIGH-RISK ACTION -> POLICY / APPROVAL` | Preserved: approvals are recorded by digest (D9.3). Their semantics remain OQ-9. |
 | I10 `FAILED TRANSACTION -> ROLLBACK OR COMPENSATION` | Unaffected. |
 | Integration grades | Preserved: D8.5, D8.14, D9.6. |
-| ADR 0002 D1 to D5 | Unchanged. D6 fills the namespace that D2.2 and D3.2 left open. D7 supplies the limits that D1.4 requires, and changes limits only within D2's version rules. D8 and D9 use D4 digests and D5 adapter boundaries without changing them. |
+| ADR 0002 D1 to D5 | Unchanged. D6 fills the namespace that D2.2 and D3.2 left open. D7 supplies the limits that D1.4 requires. Size and depth equal the shared ceiling in every protocol, so they are rejected before any further processing (D7.1, D7.4). Limits change only within D2's version rules. D8 and D9 use D4 digests and D5 adapter boundaries without changing them. |
 
 No conflict with ADR 0001 or ADR 0002 was found. The one interpretive
 point, whether a decision-record form fits within the Evidence Receipt's
-frozen purpose, is surfaced for the owner in D9's acceptance criteria.
+frozen purpose, was decided by the owner in accepting D9.
 
-## Owner decisions required
+## Owner decisions
 
-1. **D6.1:** choose namespace option A (proposed) or C. Choose and register
-   the domain, and name the registrant. Under C, also choose the minting
-   date and record the evidence of control (D6.8). Record `{root}`.
-   Option B (w3id.org) is available only through a separate governance
-   decision and a new ADR that changes the control requirement.
-2. **D6.2 to D6.8:** confirm or amend the never-dereference rule, canonical
-   spelling, template, minting rule, safeguards, placeholder and the
-   conditions for option C.
-3. **D7.3:** confirm or amend each ceiling value.
-4. **D7.5, D7.6:** confirm the version rule for limits and the
-   local-refusal rule.
-5. **D8.2, D8.4:** confirm the `(issuer, subject)` form and the three
-   kinds.
-6. **D8.7:** confirm the prohibitions on agents and model descriptors.
-7. **D8.8:** confirm that agents are never principals, or choose the
-   alternative in the analysis.
-8. **D8.9:** choose the provenance required for capability-holder checks:
-   authenticated only; authenticated by default with explicit per-attester
-   allowance (proposed); or any trusted-attested identity. Confirm that
-   approvers must be authenticated.
-9. **D9.1, D9.9:** confirm that a decision-record form within the Evidence
-   Receipt protocol is within ADR 0001's frozen purpose for that protocol,
-   or reject it in favor of option B-int.
-10. **Per decision:** accept, amend or reject D6, D7, D8 and D9
-   independently.
+**Recorded on 2026-10-02:**
+
+1. **D6.1:** option A, with `{root}` =
+   `https://cubergo.space/proof-runtime`, and D6.2 to D6.8 as design
+   choices.
+2. **D7:** the ceilings in D7.3 and the stages in D7.4, as the initial
+   normative baseline, with D7.5 and D7.6.
+3. **D8:**
+   - PC-1 option β: authentication by default; trusted attestation only
+     through explicit configuration scoped to issuer and attester;
+     authenticated approvers.
+   - PC-2 option P2: agents may be principals only for direct actions
+     under external grants that CONTROL validates (D8.15).
+4. **D9:** option G.
+
+**Still required, for D6 only.** The owner must record the evidence in
+D6.9:
+- registrar evidence of control of `cubergo.space`,
+- the `_proof-runtime.cubergo.space` `TXT` control challenge, observed by
+  a reviewer,
+- confirmation that nothing conflicts at
+  `https://cubergo.space/proof-runtime`,
+- the D6.6 renewal arrangements.
+
+D6 can then be marked Accepted and OQ-26 resolved.

@@ -1,18 +1,19 @@
 # Shared Blocker Decisions: Analysis and Recommendations
 
-> **Status: Proposed**, supporting
-> [ADR 0003](../adr/0003-shared-blocker-decisions.md) (status: **Proposed**).
-> This document explains the reasoning behind the proposed decisions D6 to
-> D9. The proposed decisions themselves are stated only in the ADR. If the
-> two disagree, the ADR governs, and the disagreement is a defect. Nothing
-> here resolves an open question: each question stays open until its
-> decision in ADR 0003 is explicitly accepted.
+> **Status:** supports
+> [ADR 0003](../adr/0003-shared-blocker-decisions.md), which is **Accepted
+> in part**. D7, D8 and D9 were accepted on 2026-10-02. D6 is Proposed
+> until control of the selected domain is verified (D6.9). This document
+> explains the reasoning. The decisions themselves are stated only in the
+> ADR. If the two disagree, the ADR governs, and the disagreement is a
+> defect. The prose conformance cases illustrate the ADR's rules; they are
+> not test vectors.
 
 This document covers the four questions that block field-level
 specification of several or all core protocols
 ([dependency map](dependency-map.md)):
 
-| Question | Topic | Proposed decision |
+| Question | Topic | Decision |
 |---|---|---|
 | [OQ-26](#oq-26-identifier-namespace) | Identifier namespace | D6 |
 | [OQ-27](#oq-27-protocol-resource-limits) | Protocol resource limits | D7 |
@@ -30,7 +31,7 @@ Each section covers:
 3. security implications,
 4. the recommendation,
 5. unresolved dependencies,
-6. proposed conformance cases (prose only, not normative until accepted),
+6. prose conformance cases,
 7. residual risks.
 
 Every section works within the frozen boundaries of
@@ -88,7 +89,7 @@ are listed in [Sources and verification](#sources-and-verification).
 - **Identifiers are names, not locators.** If a consumer fetched anything
   from an identifier, then whoever controls the identifier's host would
   control the consumer's behavior. D1.3 already forbids fetching schemas.
-  The proposed decision extends this to every identifier: no conformant
+  D6.2 extends this to every identifier: no conformant
   processing step may dereference a type identifier, an extension
   identifier or a schema `$id`. With that rule in place, the technical
   impact of losing a domain under option A is limited to human confusion.
@@ -175,19 +176,23 @@ owner governance decision and a new ADR that changes the control
 requirement recorded in ADR 0002's OQ-26. Options D, E and F are not
 recommended, and E and F do not meet R26.3 at all.
 
-**Owner decision required.** The project cannot pick the authority on the
-owner's behalf. The owner must:
+**Owner selection (2026-10-02).** The owner selected option A, with the
+root `https://cubergo.space/proof-runtime`. D6 stays Proposed until the
+evidence of control in D6.9 is recorded:
 
-1. choose option A (proposed) or C,
-2. choose and register the domain, decide who the registrant is
-   (preferably an organization or role account rather than an
-   individual), and commit to renewal,
-3. under C, also choose the minting date and record the evidence of
-   control on that date,
-4. record `{root}`, and confirm or change the identifier template and the
-   minting rule below.
+- registrar-level evidence for `cubergo.space`,
+- a DNS `TXT` control challenge tied to this repository, observed by a
+  reviewer,
+- confirmation that nothing conflicts under the root,
+- the D6.6 renewal arrangements.
 
-**Proposed identifier template** (independent of the option chosen, once
+DNS resolution, historical ownership claims and repository membership are
+not, on their own, evidence of control. From the session that recorded the
+selection, the domain resolved, but RDAP, WHOIS and HTTPS access were
+blocked, and a web search found no published content. That establishes
+nothing about control.
+
+**Identifier template** (independent of the option chosen, once
 `{authority}` is fixed):
 
 ```text
@@ -217,12 +222,12 @@ published specification version may contain it.
 
 ### Unresolved dependencies
 
-- The owner decision above. Until it is made, no core type identifier is
-  final, and no protocol specification can be published.
+- The D6.9 evidence. Until it is recorded and D6 is accepted, no core type
+  identifier is final, and no protocol specification can be published.
 - Interaction with D9: the form segment, if the Evidence Receipt
   specification uses one.
 
-### Proposed conformance cases
+### Conformance cases
 
 | # | Case | Expected result |
 |---|---|---|
@@ -236,6 +241,9 @@ published specification version may contain it.
 | N-08 | `{root}` is recorded as a w3id.org URI without a new ADR changing the control requirement | Not a valid resolution of OQ-26 under D6.1. |
 | N-09 | Under option C, the tagging entity is an email address, personal or role | Not eligible under D6.1 and D6.8. Only a DNS domain the project controls may be the tagging entity. |
 | N-10 | Under option C, `{root}` names a domain other than the one whose control on the minting date is recorded | Not a valid root under D6.8. The root must name the recorded tagging entity. |
+| N-11 | Before D6 is accepted, a draft specification uses `https://cubergo.space/proof-runtime` as `{root}` | Not yet permitted. Drafts use the placeholder until D6 is accepted (D6.7). |
+| N-12 | The Evidence Receipt specification uses `{root}/evidence-receipt/{form}/v{MAJOR}` for its decision-record form | Valid. This is the only exception to the `{root}/{protocol}/v{MAJOR}` template (D6.4), and `{MAJOR}` is the Evidence Receipt major version. |
+| N-13 | Any other protocol uses a form segment in its type identifier | Invalid under D6.4. |
 
 ### Residual risks
 
@@ -386,7 +394,7 @@ they apply to every value of a JSON kind, whatever it means. Rows 5, 9 and
 10 are **semantic**: they apply only to values with a particular protocol
 role, which is known only once the document type is identified (D7.3).
 
-**Validation stages.** The proposed order of checks (D7.4). Every stage
+**Validation stages.** The order of checks (D7.4). Every stage
 fails closed: a failure rejects the document, records the reason and stops
 processing.
 
@@ -426,7 +434,24 @@ That choice belongs to the protocol specifications, not to ADR 0003.
 They change only with a new major version. Under D2.4, a minor version may
 add only optional members and values of open members. Raising or lowering a
 limit is neither, so allowing it in a minor version would conflict with
-ADR 0002. Raising the shared ceiling requires a new ADR.
+ADR 0002. Any change to the shared ceiling requires a new ADR. Lowering a
+ceiling is the harder case. Protocol versions already published may have
+limits above the new value, and their valid documents must not become
+invalid. So a lowering ADR must coordinate with those major versions and
+keep D1.4 satisfied (D7.5).
+
+**Size and depth are uniform.** ADR 0002 D1.4 requires a document that
+exceeds its protocol's maximum size or depth to be rejected "before any
+further processing". A tighter per-protocol size or depth limit could only
+be applied at Stage 2, after a full structural pass and type
+identification. That would violate D1.4. D7.1 therefore fixes size and
+depth at the shared ceiling for every protocol, and checks them at Stages 0
+and 1. Other measures may be tightened per protocol at Stage 2.
+
+**Specification limits, not performance claims.** The ceilings are
+normative limits for documents. They do not claim any measured runtime
+performance. Benchmarks and executable conformance tests belong to
+implementation.
 
 **Local stricter refusal.** A deployment may refuse documents that are
 within the limits, for example on a constrained device. It must record
@@ -445,7 +470,7 @@ decision. Its only cost is availability.
   out is unverifiable, never verified (C5, D2.7). The values belong to the
   Evidence Receipt specification and OQ-19.
 
-### Proposed conformance cases
+### Conformance cases
 
 | # | Case | Expected result |
 |---|---|---|
@@ -460,7 +485,8 @@ decision. Its only cost is availability.
 | L-09 | 100,001 values in total, each array and object within its own limits | Reject. |
 | L-10 | Number token of 18 characters, for example `-00000000000000001` | Already invalid under D1.2 (leading zeros). Rejected lexically, before any conversion. |
 | L-11 | Digest set with 9 entries | Passes Stage 1, where it is just an object with 9 members. Rejected at Stage 2, once the document type identifies it as a digest set. |
-| L-12 | Document within the ceiling but above its protocol's tighter limit | Reject at Stage 2. |
+| L-12 | Document within the ceiling but above its protocol's tighter limit for a measure other than size or depth, for example array length | Reject at Stage 2. |
+| L-18 | A protocol specification sets a document-size or nesting-depth limit below the shared ceiling | Invalid specification under D7.1. Size and depth equal the ceiling in every protocol, so that ADR 0002 D1.4 is met. |
 | L-13 | Consumer refuses a document within all limits under a local policy | Recorded as a local resource refusal, not as invalid. No partial processing. |
 | L-14 | A 3,000-byte string in a member that is not an identifier, for example a description | Passes. Stage 1 applies only the 65,536-byte string ceiling, and infers no identifier role. |
 | L-15 | An identity-reference subject of 2,049 bytes | Passes Stage 1. Rejected at Stage 2, once its role is known from the document type. |
@@ -513,7 +539,7 @@ decision. Its only cost is availability.
 
 ### Distinctions
 
-The proposed decision (D8.1) separates the following concepts. One entity
+D8.1 separates the following concepts. One entity
 may hold several roles. Holding one role never implies another.
 
 | Concept | Meaning | What it is not |
@@ -597,8 +623,8 @@ may hold several roles. Holding one role never implies another.
   (SPIFFE-ID §4.1.2, verified).
 - **Identifier reassignment.** If an issuer reassigns a subject, historical
   records then appear to name the new entity. Immutable records reference
-  every role: actors, agents (which are never principals under PC-2 option
-  P1), delegates, approvers and producers, not only principals. So every
+  every role: actors, agents, delegates, approvers, grantors and
+  producers, not only principals. So every
   issuer CONTROL trusts, for any role, must guarantee non-reassignment
   (D8.3). OIDC requires this of `sub`. Email addresses do not guarantee
   it. A record's reference denotes the entity assigned at the time of the
@@ -653,7 +679,7 @@ not explicitly allowed ends in denial, and denial is always recordable
 | Option | Rule | Consequence |
 |---|---|---|
 | **α. Authenticated only** | Only an identity CONTROL authenticated itself satisfies a holder check, or the match between an actor and the delegate named in a delegation. | Strictest. Where the runtime sees only host-attested identities (common at the Integrated grade, always at the Observer grade), every effectful proposal is denied. At the Observer grade this still yields useful records ("denied, but observed executing"). At the Integrated grade it blocks hosts whose control point authenticates users itself. |
-| **β. Authenticated by default; per-attester allowance (proposed)** | Authenticated is required unless CONTROL's configuration explicitly allows a named trusted attester to satisfy holder checks for a named issuer. | Fail-closed by default. Supports Integrated hosts whose identity handling the deployer has chosen to trust, and every such reliance is explicit, configured and recorded. |
+| **β. Authenticated by default; per-attester allowance (accepted)** | Authenticated is required unless CONTROL's configuration explicitly allows a named trusted attester to satisfy holder or delegate checks for a named issuer. | Fail-closed by default. Supports Integrated hosts whose identity handling the deployer has chosen to trust, and every such reliance is explicit, configured and recorded. |
 | **γ. Any trusted-attested identity** | A trusted-attested identity satisfies holder checks wherever the attester is trusted for the issuer. | Most permissive. Trusting an attester to name identities becomes, silently, trusting it to unlock capabilities. Not recommended. |
 
 Under every option, approvers must be authenticated (D8.9). An approval is
@@ -664,33 +690,49 @@ undercut the invariant. The owner may relax this only through OQ-9.
 
 | Option | Rule | Consequence |
 |---|---|---|
-| **P1. Never (proposed)** | Every agent proposal is a delegated action from a human or service principal. | Authority always traces to a non-model principal (I1). Every agent action carries a validated delegation (D8.8). |
-| **P2. For capabilities granted directly to the agent** | An agent may be its own principal, but only for capabilities an external principal granted to it under I8. | Supports long-running autonomous agents without a per-task principal. But the agent's authority then no longer traces to a principal at decision time, only to a past grant, which makes revocation and attribution weaker. |
+| **P1. Never** | Every agent proposal is a delegated action from a human or service principal. | Authority always traces to a non-model principal (I1). Every agent action carries a validated delegation (D8.8). |
+| **P2. For capabilities granted directly to the agent (accepted, with strict external authority)** | An agent may be its own principal, but only for capabilities an external principal granted to it under I8, and validated by CONTROL. | Supports long-running agents without a per-task principal. The agent's authority traces to a past grant rather than a principal present at decision time. So grants must stay bounded and revocable, and CONTROL validates them at every decision (D8.15). |
 
-**Consequence of P1 for agent-held Capability Manifests.** A Capability
-Manifest may name an agent as its holder (D8.9). Under P1, the agent can
-never act directly, because it is never a principal. D8.9 considers a
-capability in only two cases:
+**How the accepted option P2 works.** The owner selected P2, with strict
+external authority. D8 now has two paths, and they never mix:
 
-1. in a direct action, for its holder,
-2. in a delegated action, when the capability is the principal's and is
-   available through a validated delegation.
+1. **Direct action** (D8.8, D8.9, D8.15). The agent is both actor and
+   principal. CONTROL considers only capabilities that:
+   - name the agent as holder, and
+   - trace to a grant made explicitly to the agent by an authorized
+     external human or service principal, which CONTROL validates when it
+     decides.
 
-The first case is unavailable to an agent. Under the second, a manifest
-naming the agent can be used only as part of a delegation that CONTROL
-validates under D8.8: the agent acts for a human or service principal, and
-the effective authority stays bounded by what that principal holds and
-what the delegation grants. The manifest by itself confers nothing (C7).
+   No delegation is required for a valid direct grant.
+2. **Delegated action** (D8.8, D8.9). The agent acts for another
+   principal P. CONTROL considers only P's capabilities, bounded by a
+   delegation from P that CONTROL validates. The agent's own direct grants
+   are not considered.
 
-This is consistent, but incomplete. D8 does not say whether a Capability
-Manifest naming an agent can itself be the representation of a delegation,
-or only a declaration that some separate delegation must back. That is
-delegation semantics, so it belongs to OQ-7. Until OQ-7 decides, an
-agent-held manifest is usable only where CONTROL can identify and validate
-the delegation behind it. This ADR makes no further policy choice here,
-and the gap is recorded in D8's unresolved dependencies. Under P2 the
-question does not arise in the same form, because an agent could use a
-capability granted directly to it as its own principal.
+**Agent-held Capability Manifests.** A manifest that names an agent as
+holder is a declaration (C7). It is never itself an authorization, a grant
+or a delegation, and presenting it confers nothing.
+- In a direct action it counts only to the extent that CONTROL validates
+  the external grant behind it.
+- In a delegated action it is never used. Using it there would combine
+  the actor's capability with the principal's authority: the confused
+  deputy that D8.8 forbids.
+
+An earlier draft suggested that, under P1, such a manifest could be used
+"through delegation". That was wrong for the reason just given, and is
+withdrawn.
+
+**What stays open.** How grants and delegations are represented, scoped,
+attenuated, expired and revoked is OQ-7. How they interact with approvals
+is OQ-9. D8 fixes only that every effective agent capability traces to a
+CONTROL-validated external grant, never exceeds what the grantor could
+grant, and never removes a required approval.
+
+**Consequence: agents do not delegate.** Under D8.7 an agent never issues
+grants. Delegating its own authority to another actor would be issuing a
+grant. So an agent is never the delegating principal of another actor
+(D8.8). Work that an agent hands to another agent needs a grant or
+delegation from a human or service principal.
 
 ### Recommendation
 
@@ -721,20 +763,24 @@ capability granted directly to it as its own principal.
    assurance. Whether an agent may be a verifier is left to OQ-18.
 8. **Actor and principal are always separate attributions** (D8.8). They
    need not be different identity references:
-   - **Direct action:** a human or service acting for itself is both actor
-     and principal, with one identity reference.
+   - **Direct action:** an entity acting for itself is both actor and
+     principal, with one identity reference. An agent may act directly only
+     under CONTROL-validated external grants (D8.15).
    - **Delegated action:** CONTROL records the actor's own identity, the
      principal's identity and the validated delegation. Without a validated
      delegation, the proposal is denied.
-   - No impersonation, and no combining of the actor's unrelated
-     capabilities with the principal's. Delegation hops count only if
-     CONTROL validated them. Delegation mechanics are OQ-7.
-   - Agents are never principals (PC-2, option P1).
+   - No impersonation, and no combining of the actor's own capabilities
+     (an agent's direct grants included) with the principal's. Delegation
+     hops count only if CONTROL validated them. Delegation mechanics are
+     OQ-7.
+   - Agents may be principals only for direct actions under external
+     grants, and never delegate (PC-2, option P2; D8.15).
 9. **Capability holders and approvers** (D8.9). A capability is considered
-   only for its holder in a direct action, or for the principal through a
-   validated delegation. Holder checks require an authenticated identity
-   unless an attester is explicitly allowed (PC-1, option β). Approvers
-   must be authenticated.
+   only for its holder in a direct action (for an agent, only if backed by
+   a validated external grant), or for the principal through a validated
+   delegation. Holder and delegate checks require an authenticated
+   identity unless an attester is explicitly allowed for a named issuer
+   (PC-1, option β). Approvers must be authenticated.
 10. Signing, when defined, binds **keys to identity references**. An
     identity is never defined by a key (D8.10).
 11. A recorded identity reference is a statement by the record's producer,
@@ -765,7 +811,7 @@ capability granted directly to it as its own principal.
 - **OQ-21:** recording the boundary and method of authentication alongside
   the integration grade.
 
-### Proposed conformance cases
+### Conformance cases
 
 | # | Case | Expected result |
 |---|---|---|
@@ -778,7 +824,7 @@ capability granted directly to it as its own principal.
 | ID-07 | Policy permits an action because a harness reports model X | Invalid policy. Model descriptors may not permit. |
 | ID-08 | An Evidence Receipt names a principal, and a consumer uses that as proof of who the principal is | Non-conformant. A recorded identity is not an authentication. |
 | ID-09 | **Direct self-representation.** Human H, authenticated by CONTROL, submits a proposal on H's own behalf | Valid. Actor and principal are both recorded, each with H's identity reference and provenance `authenticated`. No delegation is required. Holder checks match H directly. |
-| ID-10 | **Direct self-representation by an agent.** Agent G submits a proposal naming itself as principal | Under PC-2 option P1, denied: an agent is never a principal. Recorded with G as actor and the principal claim as self-asserted. |
+| ID-10 | **Direct self-representation by an agent.** Agent G submits a proposal as its own principal | Permitted only if CONTROL validates an external grant to G that covers the action, and policy, risk and approval requirements are met (D8.15). Otherwise denied, and the missing grant is recorded as the reason. |
 | ID-11 | **Delegated identity, validated.** Agent G, authenticated, submits on behalf of human P under a delegation CONTROL has validated | Evaluated on P's behalf. The record keeps G as actor, P as principal and a reference to the delegation. Authority is bounded by P's holdings and the delegation. G's own unrelated capabilities are not added. |
 | ID-12 | **Delegated identity, not validated; principal only claimed.** Agent G claims to act on behalf of P, P's identity appears only in the proposal, and CONTROL holds no validated delegation | Denied. G is recorded as actor. P is recorded as principal with the provenance CONTROL established for that claim, here `self-asserted`. The missing delegation is recorded as a separate reason for denial. |
 | ID-13 | **Impersonation.** A submitter authenticated as G names P as actor | The actor is recorded as G. The claim that P is the actor is recorded as self-asserted. The proposal is never evaluated as P's direct action. |
@@ -790,9 +836,14 @@ capability granted directly to it as its own principal.
 | ID-19 | **Trusted-attested approver.** An approval arrives from an approver whose identity is only trusted-attested | Does not satisfy the approval requirement (D8.9). |
 | ID-20 | **Delegation failure, principal independently authenticated.** CONTROL has authenticated P in the same interaction, but the delegation from P to agent G has expired | Denied. P is recorded with provenance `authenticated`, unchanged by the delegation failure. The expired delegation is recorded as a separate authorization failure. |
 | ID-21 | **Delegation failure, principal trusted-attested.** As ID-20, but P's identity came directly from a trusted attester, and no delegation exists | Denied. P is recorded as `trusted-attested`, neither upgraded nor downgraded. The missing delegation is recorded separately. |
-| ID-22 | **No principal identity.** Agent G submits a proposal naming no principal | Denied (G is never a principal under P1). The record states that no principal identity was established, and fabricates none. |
+| ID-22 | **No principal identity.** Agent G submits a proposal that names no principal | Denied. The record states that no principal identity was established. CONTROL does not assume a direct action, and fabricates no principal. |
 | ID-23 | **Agent subject reassignment.** An issuer trusted for agent identities reassigns the subject of a retired agent to a new agent | The issuer does not meet D8.3. CONTROL stops trusting it for new decisions. Existing records still denote the retired agent and are not edited. |
-| ID-24 | **Agent-held manifest.** A Capability Manifest names agent G as holder, and G submits a proposal with no principal | Not usable as a direct action under P1. Usable only through a delegation CONTROL validates (D8.8, D8.9; delegation semantics in OQ-7). |
+| ID-24 | **Agent-held manifest, direct action.** A Capability Manifest names agent G as holder, and G acts directly | Usable only to the extent that CONTROL validates the external grant behind the manifest (D8.15). The manifest alone confers nothing. |
+| ID-25 | **Agent-held manifest, delegated action.** G acts on behalf of human P under a validated delegation, and also holds a manifest of its own | Only P's capabilities, bounded by the delegation, are considered. G's manifest and direct grants are not combined with them (D8.8). |
+| ID-26 | **Agent-issued grant.** Agent G grants a capability to agent H, or delegates its own authority to H | Invalid. Agents never issue grants or delegations (D8.7, D8.8). H's proposal is denied unless a human or service principal has granted or delegated the authority. |
+| ID-27 | **Revoked grant.** G's external grant has been revoked | A direct action under it is denied. Revocation mechanics are OQ-7. |
+| ID-28 | **Grant does not remove approval.** G's external grant covers a high-risk action, and policy requires approval (I9) | Approval is still required, from an authenticated, non-agent approver. G cannot approve its own action. |
+| ID-29 | **Attester not scoped.** Attester T is allowed for issuer I, and attests an identity from issuer J | Does not satisfy a holder or delegate check. The allowance is scoped to the named issuer and attester (D8.9). |
 
 ### Residual risks
 
@@ -918,7 +969,7 @@ decisions in TRUST › Audit. What would violate the planes is TRUST making,
 changing or conveying an authorization. G forbids all three.
 
 **Governance test: what keeps G from becoming a protocol in all but name.**
-The proposed decision makes these conditions binding. If any of them must
+D9.9 makes these conditions binding. If any of them must
 be broken, a new ADR amending ADR 0001 is required (D9.9):
 
 1. Decision records are specified only in the Evidence Receipt
@@ -947,7 +998,18 @@ be broken, a new ADR amending ADR 0001 is required (D9.9):
 - **Replay.** A permit for proposal P does not authorize a second execution
   of an identical P. Each execution attempt needs its own CONTROL
   authorization. An earlier permit record is never sufficient (D9.5).
-  Expiry and single-use semantics belong to OQ-9.
+  Identical proposals with identical inputs would otherwise produce
+  byte-identical permit records with the same digest, and an auditor could
+  not tell a fresh authorization from a replay. So each decision record
+  carries a decision-instance identifier unique to its evaluation (D9.3).
+  Each execution receipt references the permit for its own attempt, and
+  one permit authorizes at most one attempt (D9.5). Expiry semantics
+  belong to OQ-9.
+- **Misattributed approvals.** An external approver's rejection is the
+  approver's decision, not CONTROL's. The decision record references the
+  approval or rejection as an input, attributes it to the approver with
+  the approver's identity provenance, and records CONTROL's resulting
+  decision separately (D9.2).
 - **Forgery without signatures.** There is no signing yet (D4.6). A
   decision record is trustworthy only inside the trust boundary that
   produced it. Elsewhere it is a statement attributed to its producer,
@@ -990,7 +1052,7 @@ Effect on the dependency map, **if accepted**:
 - **OQ-21:** how the grade and boundary in effect are recorded.
 - **OQ-4 residual:** authenticity across trust boundaries.
 
-### Proposed conformance cases
+### Conformance cases
 
 | # | Case | Expected result |
 |---|---|---|
@@ -1008,6 +1070,10 @@ Effect on the dependency map, **if accepted**:
 | DR-12 | A decision record whose actor is `trusted-attested` is later presented as proof of that actor's identity | Not accepted. A recorded identity is not an authentication (D8.11). |
 | DR-13 | A permit decision record whose actor provenance is `self-asserted` | Invalid. A permit never rests on a self-asserted identity (D8.5, D9.3). |
 | DR-14 | A later record, or a copy, presents an identity with stronger provenance than the original decision record | Invalid. Provenance is never upgraded (D8.5). |
+| DR-15 | Two evaluations of an identical proposal with identical inputs | Two decision records with different decision-instance identifiers, and therefore different digests (D9.3). |
+| DR-16 | Two execution receipts reference the same permit decision record | Evidence of replay. The second execution is not verified as authorized (D9.5). |
+| DR-17 | An external approver rejects a proposal | CONTROL records a deny decision. It references the rejection by digest, records the approver's identity and provenance as the approver's, and records the rejection among the reasons for denial. The rejection is not presented as CONTROL's own decision (D9.2, D9.3). |
+| DR-18 | A deny decision record gives no reason for the denial | Invalid. Every reason for a denial is recorded (D9.3). |
 
 ### Residual risks
 
@@ -1016,9 +1082,8 @@ Effect on the dependency map, **if accepted**:
   and only conformance testing and review can catch it.
 - **Interpretation of ADR 0001.** Whether a decision record fits within the
   Evidence Receipt's frozen purpose is a judgment. The analysis above
-  argues that it does. Accepting D9 is the owner's confirmation of that
-  reading. If the owner disagrees, the remaining compliant option is
-  B-int, which gives up third-party auditability.
+  argues that it does, and the owner confirmed that reading by accepting
+  D9 with option G on 2026-10-02.
 
 ---
 
@@ -1029,8 +1094,8 @@ RFC Editor, the IETF Datatracker, `openid.net` and `w3id.org` were blocked
 by its egress proxy. GitHub raw content was reachable. The verification
 levels are those of the
 [standards matrix](standards-matrix.md#verification-levels). The matrix
-itself is not changed by this proposal. If ADR 0003 is accepted, rows for
-the newly cited sources should be added there.
+itself is an Accepted supporting document of ADR 0002 and is not changed
+here. Adding rows for the newly cited sources is left to a later change.
 
 | Source | Used for | Verification |
 |---|---|---|
