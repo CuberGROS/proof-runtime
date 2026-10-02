@@ -92,9 +92,13 @@ implementation.
 
 - **Phase 0 (complete):** repository foundation and architecture
   documentation, frozen by ADR 0001.
-- **Phase 1A (current):** shared protocol foundations, decided by
-  [ADR 0002](docs/adr/0002-shared-protocol-foundations.md). Documentation
-  only; no runtime code.
+- **Phase 1A (complete):** shared protocol foundations, decided by
+  [ADR 0002](docs/adr/0002-shared-protocol-foundations.md).
+- **Phase 1B (current):** shared blocker decisions in
+  [ADR 0003](docs/adr/0003-shared-blocker-decisions.md) (status:
+  **Accepted in part**). OQ-27, OQ-5 and OQ-29 are resolved. OQ-26 is open
+  until control of the selected domain is verified. Documentation only; no
+  runtime code.
 - Later phases (field-level protocol specification, reference
   implementation) begin only after they are explicitly authorized.
 

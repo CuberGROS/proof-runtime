@@ -1,7 +1,8 @@
 # Architecture
 
-> **Status: pre-alpha, Phase 1A.** The architecture is frozen (ADR 0001)
-> and the shared protocol foundations are decided (ADR 0002). This document
+> **Status: pre-alpha, Phase 1B.** The architecture is frozen (ADR 0001),
+> the shared protocol foundations are decided (ADR 0002), and decisions on
+> the shared blockers are accepted in part (ADR 0003). This document
 > describes architectural boundaries only. Nothing described here is
 > implemented yet.
 
@@ -16,6 +17,7 @@ authoritative for each topic.
 | `ARCHITECTURE.md` (this file)                                                | Canonical entry point and summary of the architecture boundaries                              |
 | [docs/adr/0001-architecture-freeze.md](docs/adr/0001-architecture-freeze.md) | Decision record (Accepted): what is frozen, terms identified for review, open questions       |
 | [docs/adr/0002-shared-protocol-foundations.md](docs/adr/0002-shared-protocol-foundations.md) | Decision record (Accepted): shared protocol foundations (encoding, versioning, extensions, integrity, standards) |
+| [docs/adr/0003-shared-blocker-decisions.md](docs/adr/0003-shared-blocker-decisions.md) | Decision record (**Accepted in part**): resolves OQ-27, OQ-5 and OQ-29 (D7, D8, D9). D6 (OQ-26) is Proposed pending verified domain control |
 | [docs/invariants.md](docs/invariants.md)                                     | Detailed specification of the invariants: wording, meaning and enforcement scope             |
 | [docs/architecture/overview.md](docs/architecture/overview.md)               | Explanatory narrative: plane responsibilities, action lifecycle, integration grades, diagrams |
 | [spec/README.md](spec/README.md)                                             | Protocol requirements and the questions that block their specification                        |
@@ -35,6 +37,10 @@ OQ-2, OQ-3 and OQ-23, and OQ-4 except its residual. The other open
 questions in ADR 0001, the OQ-4 residual, and OQ-26 to OQ-29 raised by
 ADR 0002 remain unresolved. Each will be settled by its own ADR or
 specification decision, within these boundaries.
+[ADR 0003](docs/adr/0003-shared-blocker-decisions.md) (status: **Accepted
+in part**) resolves OQ-27, OQ-5 and OQ-29. Its decision on OQ-26 is
+Proposed until control of the selected domain is verified, so OQ-26
+remains open.
 
 ## Four planes
 
