@@ -65,9 +65,20 @@ transcoding.
 - **Duplicate keys.** Duplicate-key acceptance can make two components see
   different documents (a parser-differential attack). D1 therefore requires
   rejection rather than relying on default parser behavior.
-- **Large numbers.** Integers above 2^53 lose precision in IEEE 754 doubles
-  in many languages. Floating-point values serialize differently across
-  languages. D1 bans non-integer core numbers and bounds integer range.
+- **Numbers throughout the document.** Every document must have a JCS
+  canonical form (D4.2), and JCS requires its input numbers to be
+  representable as IEEE 754 doubles (RFC 8785 §3.1; not verified from the
+  primary text in this review). A rule that covered only core members would
+  let extension data carry a value such as `1e400`, or an integer beyond
+  2^53, that cannot be canonicalized faithfully. Such a document could not
+  be digest-addressed conformantly. D1.2 therefore applies three rules to
+  the whole document:
+  - every number must be a finite double,
+  - integers must lie within ±(2^53 − 1),
+  - exact-precision quantities must be strings.
+
+  Core members keep the stricter integer-only rule, because floating-point
+  values serialize differently across languages.
 - **Remote schema references.** Resolving `$ref` over the network during
   validation would let documents trigger outbound requests. D1 requires
   offline, bundled schemas.
@@ -166,6 +177,11 @@ Two further rules close remaining gaps:
 
 - Documents are immutable and digest-addressed (D2.7). Migration therefore
   creates new documents that reference the originals.
+- Immutability is not indefinite retention. Documents are immutable for as
+  long as they are retained, but the retention and privacy policy (OQ-19)
+  may require deletion or tombstoning, for example of sensitive evidence
+  after redaction. A reference to a deleted document becomes unverifiable
+  and is never presented as verified (D2.7).
 - Verification of historical records stays possible as long as
   implementations retain support for reading old major versions. How long
   that support must last is a future policy question.
@@ -246,7 +262,14 @@ Adopt **D2**:
 
   This producer error is a residual risk. Producer-side conformance testing
   ([conformance cases X-03 and X-04](conformance-cases.md#extensions-d3))
-  and future authenticity reduce it, but nothing eliminates it.
+  reduces how often it occurs. For unaware consumers, it is unmitigated.
+
+  Future signatures would not help here. A signature would only prove that
+  the producer emitted the erroneous document. It would not let an unaware
+  consumer learn that the unknown extension mattered. Only a mechanism that
+  conveys extension classification to unaware consumers, such as
+  authenticated classification metadata, could close this gap. No such
+  mechanism is defined.
 - **Stripping.** An intermediary could remove an extension or its critical
   marker. Digests detect this only if the consumer holds an independently
   obtained digest. Authenticity (signatures, reserved in D4.7) is needed to
@@ -335,13 +358,25 @@ Adopt **D3**:
 - **No algorithm, no match.** A digest reference with no acceptable
   algorithm is treated as unverifiable. It is never a match. This prevents
   downgrade to weak or unknown algorithms.
-- **All-of-accepted matching.** The in-toto `DigestSet` guidance treats two
-  sets as matching if *any* acceptable entry matches (verified). Consider a
-  malformed or malicious set holding the SHA-256 of content A and the
-  SHA-512 of content B. Under "any", one consumer resolves the reference to
-  A and another to B, depending on which algorithms each prefers. D4.4
-  therefore requires every accepted entry to match the same content, and
-  treats a set that cannot satisfy this as invalid.
+- **A common anchor, plus all-of-accepted matching.** The in-toto
+  `DigestSet` guidance treats two sets as matching if *any* acceptable entry
+  matches (verified). Consider a malformed or malicious set holding the
+  SHA-256 of content A and the SHA-512 of content B. Under "any", one
+  consumer resolves the reference to A and another to B, depending on which
+  algorithms each prefers.
+  - "All of the consumer's accepted entries must match" alone is not
+    enough. A consumer that accepts only SHA-256 still resolves to A, while
+    one that accepts only SHA-512 resolves to B.
+  - D4.4 therefore adds a **common validation anchor**. Every v0.1
+    reference must contain `sha256`, and every consumer must verify it.
+    Every other accepted entry must also match.
+  - No conformant consumer can then resolve the reference to B. At worst,
+    one consumer rejects while another accepts A, and that divergence fails
+    closed.
+  - Mandatory inclusion also prevents a reference that uses only an
+    optional algorithm from being unverifiable by consumers that implement
+    only the mandatory one.
+  - Replacing the anchor in future requires a new ADR.
 - **Canonical-content integrity, not byte integrity.** A document digest is
   computed over the JCS canonical form, so equivalent serializations share
   one digest (D4.1). That is what makes cross-implementation references
@@ -372,8 +407,8 @@ Adopt **D3**:
 
 | Status in v0.1 | Items |
 |---|---|
-| **Normative** | Four-property separation (D4.1); JCS canonical form (D4.2); content digests (D4.3); `DigestSet` with `sha256` (D4.4); store, relay and transform rules (D4.5); no provenance laundering (D4.6). |
-| **Reserved, no v0.1 requirement** | Signing, with DSSE as the preferred future envelope (D4.7). No v0.1 document or implementation may claim to be signed, authenticated or DSSE-conformant. |
+| **Normative** | Four-property separation (D4.1); JCS canonical form (D4.2); content digests (D4.3); `DigestSet` with `sha256` in every reference and anchored matching (D4.4); store, relay and transform rules (D4.5); no provenance laundering, and the **prohibition on claiming signing, authenticity or envelope conformance in v0.1** (D4.6). |
+| **Reserved, no v0.1 requirement** | Future signing design (D4.7). The envelope choice is open; DSSE is the preferred candidate. |
 
 ### Migration and extension
 

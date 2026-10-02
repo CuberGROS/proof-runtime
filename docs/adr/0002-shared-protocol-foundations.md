@@ -64,12 +64,24 @@ position and exact syntax are left to the protocol specifications.
      documents that contain them, rather than applying "last one wins".
    - Producers MUST NOT emit a byte order mark. Consumers MUST reject
      documents that start with one.
-   - **Numbers.** Core members (members defined by a protocol
-     specification, not by an extension) MUST NOT use non-integer JSON
-     numbers. Integer values MUST lie in the range
-     −(2^53 − 1) to 2^53 − 1. Values outside that range, decimals and
-     quantities that need exact precision are represented as strings in a
-     format the protocol specification defines.
+   - **Numbers, whole document.** These rules apply to every JSON number
+     anywhere in a document, including nested extension data. They follow
+     the JCS input requirements (RFC 8785 §3.1; see the standards matrix for
+     verification status).
+     - Every number MUST parse to a finite IEEE 754 double-precision value.
+       A number that overflows, such as `1e400`, makes the document invalid.
+     - A number written without a fraction or exponent (an integer) MUST
+       lie in the range −(2^53 − 1) to 2^53 − 1, so that it is represented
+       exactly.
+     - Consumers MUST reject a document containing a number that violates
+       either rule.
+     - A quantity that needs exact precision, such as an exact decimal,
+       a large integer or a monetary amount, MUST be encoded as a string,
+       in any member, core or extension. Its format is defined by the
+       specification that owns the member.
+   - **Numbers, core members.** Core members (members defined by a protocol
+     specification, not by an extension) are stricter still: they MUST NOT
+     use non-integer JSON numbers at all.
    - **Absence.** A core member that has no value is omitted. `null` is not
      used to mean "absent" in core members.
    - **Timestamps** use RFC 3339 with an explicit `Z` (UTC) offset. A
@@ -87,6 +99,8 @@ position and exact syntax are left to the protocol specifications.
      **minimum**: a document that fails schema validation is invalid, but
      passing validation does not make a document valid. Semantic rules that
      the schema cannot express remain in the prose.
+   - Consumers MUST reject a document that fails validation against its
+     protocol's normative schema.
    - Schemas MUST be resolvable offline, by `$id`, from schemas bundled with
      the implementation. Validators MUST NOT fetch `$ref` targets from the
      network while validating documents.
@@ -154,9 +168,18 @@ position and exact syntax are left to the protocol specifications.
    - D2.4 applies only from `1.0`.
 7. **Immutability and migration.** A document identified by a content
    digest (D4) is never edited in place.
+   - **Immutable while retained, not retained forever.** Immutability
+     governs a document's content for as long as it is retained. Whether a
+     document is retained, for how long, and whether it may be deleted or
+     replaced by a tombstone is decided by the retention and privacy policy
+     (OQ-19), not by this ADR. Deletion removes a document; it never edits
+     one.
    - Migrating a document to a new version produces a new document. The
-     new document references the original by digest, and the original is
-     retained.
+     new document references the original by digest. The original is
+     retained or deleted according to that policy.
+   - **Unavailable is never verified.** A reference whose target has been
+     deleted, tombstoned or is otherwise unavailable is unverifiable. Such
+     historical evidence MUST NOT be presented as verified.
    - A migrated document is attributed to whoever performed the migration,
      not to the producer of the original.
    - D4.5 governs how digests behave across migration.
@@ -201,6 +224,9 @@ position and exact syntax are left to the protocol specifications.
      partially.
    - Listing an identifier that is not present in the extensions element
      makes the document invalid.
+   - Identifiers in the critical list MUST be unique and ASCII (D1.2). A
+     list that contains the same identifier more than once makes the
+     document invalid.
 5. **What must be critical.** An extension whose semantics can affect a
    security-relevant decision MUST be marked critical in every document
    that carries it. This applies to restrictive extensions (for example,
@@ -217,8 +243,14 @@ position and exact syntax are left to the protocol specifications.
      the document as invalid.
    - A consumer that does not understand the extension cannot detect a
      missing critical marker. This producer error is a stated residual
-     risk. It is mitigated by producer-side conformance testing and, once
-     available, by authenticity (D4.7). It is not prevented by this ADR.
+     risk, and for unaware consumers it is **unmitigated**.
+     - Producer-side conformance testing reduces how often it occurs.
+     - Future signatures (D4.7) would attribute the error to its producer,
+       but they would not let an unaware consumer reject the document. They
+       are therefore not a mitigation.
+     - A mechanism that would let unaware consumers detect the omission,
+       such as authenticated extension-classification metadata, is not
+       defined by this ADR.
 7. **Stripping attacks.** Removing an extension or a critical marker changes
    the document's content digest (D4).
    - Before signatures exist, this detects tampering only when a consumer
@@ -244,8 +276,8 @@ direction for future work and imposes no v0.1 requirement.
        digest is over the JCS canonical form (D4.2, D4.3), so it shows that
        the JSON data model is unchanged. It does **not** show that the
        received bytes are unchanged. Reordered members, different whitespace
-       or a different but equivalent string escape (`"a"` versus
-       `"a"`) produce the same digest.
+       or a different JSON string spelling of the same parsed content
+       (`"\u0061"` versus `"a"`) produce the same digest.
      - For **opaque artifacts**, it is *byte integrity* over the exact bytes
        (D4.3).
    - **Authenticity**: a particular key holder endorsed these bytes. This
@@ -271,22 +303,34 @@ direction for future work and imposes no v0.1 requirement.
    mapping from algorithm name to lowercase hex value. This is compatible
    with the in-toto `DigestSet`.
    - Implementations MUST support `sha256`.
-   - Consumers MUST accept only algorithms they consider secure, and MUST
-     treat a reference with no acceptable algorithm as unverifiable, not as
-     matching.
-   - **Matching is all-of-accepted.** Candidate content matches a digest
-     set only if the consumer computes **every** accepted algorithm present
-     in the set, and **all** of them match. If any accepted entry does not
-     match, the set does not match the candidate. A digest set whose
-     accepted entries cannot all match the same content is treated as
-     invalid. Entries for algorithms the consumer does not accept are
-     ignored for matching.
+   - **`sha256` in every reference.** Every digest reference in a v0.1
+     document MUST include a `sha256` entry. A reference without one is
+     invalid.
+   - Producers MUST compute every entry in a digest set over the same
+     content.
+   - Consumers MUST accept only algorithms they consider secure. In v0.1,
+     `sha256` is always accepted.
+   - **Matching: a common anchor, plus all-of-accepted.** Candidate content
+     matches a digest set only if both of these hold:
+     1. the `sha256` entry matches. Every consumer MUST verify it; it is
+        the common validation anchor; and
+     2. every other entry, for an algorithm the consumer accepts, also
+        matches.
+
+     If any verified entry does not match, the set does not match the
+     candidate. Entries for algorithms the consumer does not accept are not
+     verified by that consumer.
+     - Every conformant consumer verifies the same `sha256` entry. Two
+       conformant consumers can therefore never resolve one reference to
+       different content. If a producer violates the same-content rule, a
+       consumer that verifies an extra failing entry rejects, while another
+       may accept the content identified by `sha256`. That divergence fails
+       closed; it never yields different content.
      - This is stricter than the in-toto `DigestSet` guidance, under which
        sets "SHOULD be considered matching if ANY acceptable field matches".
-       It ensures that two conformant consumers with different algorithm
-       preferences cannot resolve one reference to different content.
-   - Adding or retiring algorithms does not require a protocol major
-     version.
+   - Adding algorithms does not require a protocol major version.
+     Retiring or replacing `sha256` as the mandatory common anchor
+     requires a new ADR.
 5. **Stored, relayed and transformed documents.**
    - **Recompute, never trust a stated digest.** A digest is valid for a
      document only if it is recomputed from the document actually held.
@@ -310,15 +354,18 @@ direction for future work and imposes no v0.1 requirement.
      be presented with the original's digest, or with any endorsement made
      over the original's bytes. It references the original by digest and
      is attributed to the party that transformed it (D2.7).
-6. **No laundering of provenance.** A record produced by the runtime that
-   contains host-attested or observed evidence attests only that the
-   runtime recorded that evidence. It MUST NOT be presented as converting
-   that evidence into runtime-enforced fact (I4, I5). The same will apply
-   to any future signature (D4.7).
-7. **Reserved: future signatures.** v0.1 defines no signing, and no signing
-   infrastructure, keys or trust roots exist.
-   - No v0.1 document or implementation may claim that a document is
-     signed, authenticated or DSSE-conformant.
+6. **No laundering of provenance, and no unsupported claims.**
+   - A record produced by the runtime that contains host-attested or
+     observed evidence attests only that the runtime recorded that
+     evidence. It MUST NOT be presented as converting that evidence into
+     runtime-enforced fact (I4, I5). The same will apply to any future
+     signature (D4.7).
+   - v0.1 defines no signing, and no signing infrastructure, keys or trust
+     roots exist. A v0.1 document or implementation MUST NOT claim that a
+     document is signed, that its authenticity is established, or that it
+     conforms to DSSE or any other signing envelope. This prohibition is
+     normative in v0.1. It is not part of the reserved provisions in D4.7.
+7. **Reserved: future signatures.** This item imposes no v0.1 requirement.
    - **The envelope choice is not decided by this ADR.** It remains part
      of the OQ-4 residual, and a future ADR must make it with BCP 14
      force. DSSE is the **preferred candidate**. It signs exact payload

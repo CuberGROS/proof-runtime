@@ -19,18 +19,23 @@ ADR. It must not quietly deviate.
   interprets any content.
 - **C2. Fail closed.** A consumer rejects a document, and records why, when
   any of the following holds:
-  - it is not valid under the JSON profile (D1.2),
+  - it is not valid under the JSON profile (D1.2), including any number,
+    anywhere in the document, that does not parse to a finite IEEE 754
+    double or is an integer outside ±(2^53 − 1),
+  - it fails validation against its protocol's normative JSON Schema
+    (D1.3),
   - it exceeds the resource limits (D1.4),
   - its type identifier and declared version disagree on the major
     version (D2.2),
   - its major version is unknown (D2.3),
   - for `0.x` protocols, its exact `MAJOR.MINOR` is not implemented and no
     compatibility is declared (D2.6),
-  - it lists a critical extension the consumer does not understand (D3.4),
+  - it lists a critical extension the consumer does not understand, or its
+    critical list contains duplicate or non-ASCII identifiers (D3.4),
   - it carries a known critical-class extension without listing it as
     critical (D3.6),
-  - a digest it relies on does not match when recomputed, or uses no
-    acceptable algorithm (D4.4, D4.5).
+  - a digest reference it relies on lacks a `sha256` entry, or does not
+    match when recomputed (D4.4, D4.5).
 
   A rejected document is never partially processed for a security-relevant
   decision.
@@ -41,16 +46,22 @@ ADR. It must not quietly deviate.
   security-relevant decision, in either direction. Content that affects a
   decision, whether it restricts or permits, is critical or requires a new
   major version (D2.5, D3.5).
-- **C4. Immutability.** A document referenced by digest is never modified.
-  Corrections, migrations and redactions are new documents that reference
-  their predecessors (D2.7). They never carry the original's digest or any
-  endorsement made over the original (D4.5).
+- **C4. Immutability, not indefinite retention.** A document referenced by
+  digest is never modified while it is retained.
+  - Corrections, migrations and redactions are new documents that reference
+    their predecessors (D2.7). They never carry the original's digest or
+    any endorsement made over the original (D4.5).
+  - Whether a document is retained, deleted or tombstoned is decided by the
+    retention and privacy policy (OQ-19). Deletion is never an in-place
+    edit.
 - **C5. Digest references.** Cross-document and artifact references carry
-  content digests (D4.3).
+  content digests that always include `sha256` (D4.3, D4.4).
   - A digest is accepted for a document only after it has been recomputed
     from the document actually held (D4.5).
-  - A reference that cannot be resolved, or whose digest does not match,
-    makes the referring claim unverifiable. It is not silently skipped.
+  - A reference that cannot be resolved, whose target has been deleted or
+    tombstoned, or whose digest does not match, makes the referring claim
+    unverifiable. It is not silently skipped, and it is never presented as
+    verified (D2.7).
 
 ## Authority and trust
 
