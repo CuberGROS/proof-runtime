@@ -30,8 +30,17 @@ this change.
   - the canonical protocol version syntax and comparison (D2.2),
   - SHA-256 in the normative reuse list (D5.1).
 
-  The owner's acceptance above predates them. Owner confirmation of these
-  clarifications is not recorded in this ADR.
+  On 2026-10-02 the repository owner and maintainer (@CuberGROS)
+  explicitly reviewed, confirmed and accepted the post-acceptance
+  normative clarifications recorded at commit `be3e20b`:
+  1. offline validation against the normative schema of the document's
+     declared protocol version (D1.3, D2.4),
+  2. the canonical `MAJOR.MINOR` grammar, with a maximum value of
+     999999999 for each component (D2.2),
+  3. the same canonical major-version syntax in document type identifiers
+     (D2.2),
+  4. the prohibition on claiming signing or authenticity until a later ADR
+     formally defines signing (D4.6).
 
 The key words "MUST", "MUST NOT", "SHOULD", "SHOULD NOT" and "MAY" in the
 Decision section are to be interpreted as described in BCP 14 (RFC 2119 and
