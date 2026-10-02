@@ -15,7 +15,8 @@ Proof Runtime aims to give AI agents a common substrate for:
 - **portable task state** that can move across models and hosts,
 - **explicit capabilities** that bound what an agent is allowed to do,
 - **governed execution** of effectful actions under policy and approval,
-- **evidence-backed verification** of what actually happened, and
+- **evidence-backed verification** of what happened, to the extent evidence
+  supports it, and
 - **recovery** when execution fails or is interrupted.
 
 The runtime is designed to be independent of any particular model provider,

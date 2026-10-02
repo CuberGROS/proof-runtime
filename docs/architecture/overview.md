@@ -130,7 +130,9 @@ verified facts on its own.
 
 ### TRUST plane
 
-Establishes **what actually happened** and **what can be believed**.
+Evaluates **what the available evidence supports** about what happened,
+within the limits of that evidence's provenance and the integration grade
+under which it was collected.
 
 - **Evidence**: records collected during execution, with provenance.
 - **Claims**: assertions made by models, tools or hosts, kept separate from
@@ -165,11 +167,11 @@ sequenceDiagram
     M->>C: Propose action (Action IR)
     C->>C: Check identity, capability, policy and risk
 
-    break No capability, or policy denies
+    break Effectful action without covering capability, or policy denies
         C-->>M: Denied (decision recorded, nothing executes)
     end
 
-    opt Privilege expansion or high-risk action
+    opt Policy requires external approval (privilege expansion or high-risk action)
         C->>A: Request authorization / approval
         break Approver rejects
             A-->>C: Rejected (decision recorded)
@@ -192,16 +194,21 @@ sequenceDiagram
 
 Notes on the flow:
 
-1. If there is no capability, or policy denies, the denial is recorded and
-   nothing executes.
-2. A request that needs external authorization or approval has two
-   outcomes, and both are recorded. **Approved** continues to execution.
-   **Rejected** ends the flow; the action never reaches the EXECUTION plane.
-3. A model's claim never changes task status to verified by itself. Only a
+1. If an effectful action has no covering capability (I7), or policy
+   denies the action, the denial is recorded and nothing executes. Which
+   actions count as effectful is an open question (OQ-10).
+2. When policy requires external approval, the request has two outcomes,
+   and both are recorded. **Approved** continues to execution. **Rejected**
+   ends the flow; the action never reaches the EXECUTION plane.
+3. Under I8 and I9, policy alone may authorize a privilege expansion or a
+   high-risk action, if that policy is external to the requesting actor.
+   The diagram shows only the case where policy requires an external
+   approver.
+4. A model's claim never changes task status to verified by itself. Only a
    verification outcome in the TRUST plane can do that, and only when
    evidence supports the claim. The set of possible verification outcomes
    is not yet defined (OQ-17).
-4. Rollback or compensation, and whether it succeeded, are part of the
+5. Rollback or compensation, and whether it succeeded, are part of the
    evidence.
 
 ### Task completion
@@ -244,8 +251,12 @@ Recovery uses the STATE and TRUST planes together:
 
 - **Checkpoints** let a task resume from a known state, possibly on a
   different model or host.
-- **Evidence and receipts** show which steps actually completed and were
-  verified. Those steps do not need to be re-executed or re-trusted.
+- **Evidence and receipts** record which steps completed and were verified,
+  and under which integration grade. A receipt describes the environment in
+  which the step ran; it does not show that the step's effects still exist
+  or remain valid now. Whether a verified step can be skipped on resume
+  depends on its effects still being present and valid in the new
+  environment, for example after a host migration (OQ-16).
 - **Rollback or compensation** handles the effects of failed transactions.
 
 The exact recovery semantics are open questions (OQ-11, OQ-16).

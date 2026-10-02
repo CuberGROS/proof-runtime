@@ -53,7 +53,7 @@ the listed protocol begins. Full descriptions are in
 
 | Protocol            | Blocking questions                             |
 | ------------------- | ---------------------------------------------- |
-| All                 | OQ-1, OQ-2, OQ-3, OQ-4                         |
+| All                 | OQ-1, OQ-2, OQ-3, OQ-4, OQ-23                  |
 | Task Capsule        | OQ-5, OQ-13, OQ-14, OQ-15, OQ-16               |
 | Action IR           | OQ-5, OQ-8, OQ-9, OQ-10, OQ-11, OQ-13          |
 | Capability Manifest | OQ-5, OQ-6, OQ-7, OQ-8, OQ-9, OQ-10            |
@@ -61,6 +61,10 @@ the listed protocol begins. Full descriptions are in
 
 Why each dependency exists:
 
+- **OQ-23 (existing standards)** blocks every protocol. Deciding whether to
+  reuse or interoperate with existing standards after fields are designed
+  could force incompatible changes. Listing it here classifies it as a
+  dependency only; it does not resolve the question.
 - **OQ-5 (identity)** blocks every protocol that names an actor: the
   principal of a task, the proposer of an action, the holder of a
   capability, the signer of a receipt.
