@@ -8,6 +8,15 @@
 > OQ-29 are defined in
 > [ADR 0002](../adr/0002-shared-protocol-foundations.md#new-open-questions).
 
+> **Proposed decisions.** [ADR 0003](../adr/0003-shared-blocker-decisions.md)
+> (status: **Proposed**) proposes decisions for OQ-26 (D6), OQ-27 (D7),
+> OQ-5 (D8) and OQ-29 (D9). The supporting analysis is in
+> [shared-blockers-analysis.md](shared-blockers-analysis.md). This map is
+> not changed by that proposal: every question below keeps its current
+> state until its decision is explicitly accepted. If D9 is accepted, OQ-29
+> no longer blocks Action IR, because no execution-bound Action IR form is
+> introduced.
+
 ## Shared foundations
 
 These questions block **all four** protocols:
@@ -16,9 +25,9 @@ These questions block **all four** protocols:
 |---|---|
 | OQ-1, OQ-2, OQ-3, OQ-23 | Resolved by ADR 0002 (D1, D2, D3, D5), accepted 2026-10-02. No longer blocking. |
 | OQ-4 | Canonicalization, digests and digest matching resolved by ADR 0002 (D4.1 to D4.6). The signing residual (which envelope, with DSSE the preferred candidate; who signs; key management) stays **open**. It does **not** block field-level specification, because signing is reserved and any future envelope would be carried outside documents (D4.7). It does block any claim of authenticity. |
-| OQ-26 Identifier namespace | Open. Every document type identifier needs it (D2.2). |
-| OQ-27 Resource limits | Open. Every protocol must state its limits (D1.4). |
-| OQ-5 Identity model | Open. Every protocol names actors: the principal of a task, the proposer of an action, the holder of a capability, the producer of a receipt. |
+| OQ-26 Identifier namespace | Open. Decision proposed in ADR 0003 (D6), not accepted. Every document type identifier needs it (D2.2). |
+| OQ-27 Resource limits | Open. Decision proposed in ADR 0003 (D7), not accepted. Every protocol must state its limits (D1.4). |
+| OQ-5 Identity model | Open. Decision proposed in ADR 0003 (D8), not accepted. Every protocol names actors: the principal of a task, the proposer of an action, the holder of a capability, the producer of a receipt. |
 
 ## Per-protocol blockers
 

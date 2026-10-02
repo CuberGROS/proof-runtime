@@ -10,6 +10,11 @@
 > (status: **Accepted**). Field-level specification remains blocked by the
 > open questions below and requires explicit authorization of the next
 > phase.
+>
+> [ADR 0003](../docs/adr/0003-shared-blocker-decisions.md) (status:
+> **Proposed**) proposes decisions for OQ-26, OQ-27, OQ-5 and OQ-29. Until
+> each decision is explicitly accepted, the question it addresses remains
+> open and blocking.
 
 Proof Runtime defines four core protocols. Their existence and purpose are
 frozen by [ADR 0001](../docs/adr/0001-architecture-freeze.md) (status:
