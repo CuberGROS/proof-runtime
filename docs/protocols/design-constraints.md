@@ -29,8 +29,9 @@ ADR. It must not quietly deviate.
   - its type identifier and declared version disagree on the major
     version (D2.2),
   - its major version is unknown (D2.3),
-  - for `0.x` protocols, its exact `MAJOR.MINOR` is not implemented and no
-    compatibility is declared (D2.6),
+  - for `0.x` protocols, the consumer has not explicitly implemented its
+    exact `MAJOR.MINOR`. No cross-minor compatibility exception exists
+    before `1.0` (D2.6),
   - it lists a critical extension the consumer does not understand, or its
     critical list contains duplicate or non-ASCII identifiers (D3.4),
   - its critical list names an identifier that is not present in its
@@ -53,10 +54,10 @@ ADR. It must not quietly deviate.
   major version (D2.5, D3.5).
 - **C4. Immutability, not indefinite retention.** A document referenced by
   digest is never modified while it is retained.
-  - Corrections, migrations and redactions are new documents. A
-    transformed document **may, and should, reference its predecessor by
-    the predecessor's digest** (D2.7); that is how provenance is preserved.
-  - It **must not** use the predecessor's digest as its own content digest,
+  - A correction, migration or redaction produces a new document, which
+    **MUST reference its predecessor by the predecessor's content digest**
+    (D2.7, D4.5). That is how provenance is preserved.
+  - It **MUST NOT** use the predecessor's digest as its own content digest,
     present itself under that digest, or reuse any endorsement made over
     the predecessor (D4.5). Its own content digest is computed from its
     own canonical form.

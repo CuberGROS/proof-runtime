@@ -186,9 +186,11 @@ position and exact syntax are left to the protocol specifications.
      replaced by a tombstone is decided by the retention and privacy policy
      (OQ-19), not by this ADR. Deletion removes a document; it never edits
      one.
-   - Migrating a document to a new version produces a new document. The
-     new document references the original by digest. The original is
-     retained or deleted according to that policy.
+   - A correction, migration (for example, to a new version) or redaction
+     produces a new document. The new document MUST reference its
+     predecessor by the predecessor's content digest, and MUST NOT use that
+     digest as its own (D4.5). The predecessor is retained or deleted
+     according to that policy.
    - **Unavailable is never verified.** A reference whose target has been
      deleted, tombstoned or is otherwise unavailable is unverifiable. Such
      historical evidence MUST NOT be presented as verified.
@@ -364,8 +366,9 @@ direction for future work and imposes no v0.1 requirement.
      with a new content digest. This includes migration, redaction, and
      adding or removing members or extensions. The new document MUST NOT
      be presented with the original's digest, or with any endorsement made
-     over the original's bytes. It references the original by digest and
-     is attributed to the party that transformed it (D2.7).
+     over the original's bytes. It MUST reference the original by the
+     original's content digest, and it is attributed to the party that
+     transformed it (D2.7).
 6. **No laundering of provenance, and no unsupported claims.**
    - A record produced by the runtime that contains host-attested or
      observed evidence attests only that the runtime recorded that
