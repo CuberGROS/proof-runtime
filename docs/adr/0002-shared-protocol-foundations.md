@@ -121,13 +121,22 @@ position and exact syntax are left to the protocol specifications.
    A consumer MUST reject a document whose major version it does not
    implement. It MUST NOT attempt best-effort interpretation.
 4. **Minor version (from 1.0).** For protocol versions `1.0` and later, a
-   minor version MAY only add optional core members, or new values that the
-   specification marks as ignorable, and each such addition MUST be
-   decision-neutral (D2.5). A minor revision MUST NOT change the meaning of
-   an existing member.
+   minor version MAY only add:
+   - optional core members, or
+   - new values to an existing member, but only if the specification
+     version that first defined the member declared its value space
+     **open** and specified how consumers handle unknown values.
+
+   Every such addition MUST be decision-neutral (D2.5). An unknown value of
+   an open member is handled exactly as that original definition
+   specifies. That handling must itself be either decision-neutral or a
+   rejection. Adding values to a member whose value space was not declared
+   open requires a new major version. A minor revision MUST NOT change the
+   meaning of an existing member or value.
    - A consumer that implements `M.n` MAY process a document declaring
-     `M.m` with `m > n`. It ignores core members it does not recognize.
-     This is safe only because of D2.5.
+     `M.m` with `m > n`. It ignores core members it does not recognize and
+     handles unknown values of open members as originally specified. This
+     is safe only because of D2.5.
    - A consumer MAY process documents declaring any `M.m` with `m ≤ n`.
 5. **Security-relevant changes are never ignorable.** Any change that
    affects a security-relevant decision MUST be introduced either as a new
@@ -165,6 +174,16 @@ position and exact syntax are left to the protocol specifications.
    - The URI includes the extension's major version.
    - Identifiers are compared as exact strings (D1.2).
    - The core namespace (OQ-26) is reserved for protocol specifications.
+   - **Stable semantics per identifier.** Once an extension identifier is
+     published, its semantics for security-relevant decisions are fixed.
+     Any change that could alter a security-relevant decision made by a
+     consumer of the earlier definition MUST be published under a new
+     identifier. This includes adding a restricting or permitting member,
+     or a new value with decision effect. Under the same identifier, an
+     extension may change only editorially, or add decision-neutral content
+     whose unknown-content handling was specified by its first definition.
+     A consumer that "understands" an identifier (D3.4) therefore
+     understands every security-relevant meaning that identifier can carry.
 3. **Non-critical extensions are decision-neutral.** A non-critical
    extension MUST be decision-neutral. Every consumer, including one that
    understands the extension, MUST NOT use it as input to a
@@ -219,8 +238,16 @@ direction for future work and imposes no v0.1 requirement.
 
 1. **Four distinct properties.** Proof Runtime documents and implementations
    MUST keep these apart:
-   - **Integrity**: these bytes have not changed since a digest was
-     computed.
+   - **Integrity**: the content has not changed since a digest was
+     computed. It takes two forms:
+     - For **protocol documents**, it is *canonical-content integrity*. The
+       digest is over the JCS canonical form (D4.2, D4.3), so it shows that
+       the JSON data model is unchanged. It does **not** show that the
+       received bytes are unchanged. Reordered members, different whitespace
+       or a different but equivalent string escape (`"a"` versus
+       `"a"`) produce the same digest.
+     - For **opaque artifacts**, it is *byte integrity* over the exact bytes
+       (D4.3).
    - **Authenticity**: a particular key holder endorsed these bytes. This
      requires signatures and a binding from keys to identities (OQ-5).
    - **Authorization**: the endorsing party was permitted to make this
@@ -247,6 +274,17 @@ direction for future work and imposes no v0.1 requirement.
    - Consumers MUST accept only algorithms they consider secure, and MUST
      treat a reference with no acceptable algorithm as unverifiable, not as
      matching.
+   - **Matching is all-of-accepted.** Candidate content matches a digest
+     set only if the consumer computes **every** accepted algorithm present
+     in the set, and **all** of them match. If any accepted entry does not
+     match, the set does not match the candidate. A digest set whose
+     accepted entries cannot all match the same content is treated as
+     invalid. Entries for algorithms the consumer does not accept are
+     ignored for matching.
+     - This is stricter than the in-toto `DigestSet` guidance, under which
+       sets "SHOULD be considered matching if ANY acceptable field matches".
+       It ensures that two conformant consumers with different algorithm
+       preferences cannot resolve one reference to different content.
    - Adding or retiring algorithms does not require a protocol major
      version.
 5. **Stored, relayed and transformed documents.**
@@ -281,15 +319,18 @@ direction for future work and imposes no v0.1 requirement.
    infrastructure, keys or trust roots exist.
    - No v0.1 document or implementation may claim that a document is
      signed, authenticated or DSSE-conformant.
-   - When signing is introduced by a future ADR, the preferred direction is
-     the DSSE envelope. DSSE signs exact payload bytes together with a
-     payload type, through its pre-authentication encoding. The payload
-     would be the document's canonical form (D4.2), so that the signed
-     bytes and the content digest refer to the same bytes.
+   - **The envelope choice is not decided by this ADR.** It remains part
+     of the OQ-4 residual, and a future ADR must make it with BCP 14
+     force. DSSE is the **preferred candidate**. It signs exact payload
+     bytes together with a payload type, through its pre-authentication
+     encoding. The payload would be the document's canonical form (D4.2),
+     so that the signed bytes and the content digest refer to the same
+     content.
    - Envelopes would be carried outside the documents they sign, so that
      signing never changes a content digest.
-   - Which parties sign which documents, key management, rotation,
-     revocation and trust roots remain open (OQ-4 residual, OQ-5).
+   - Which envelope is used, which parties sign which documents, key
+     management, rotation, revocation and trust roots remain open (OQ-4
+     residual, OQ-5).
 
 ### D5. Relationship to existing standards (OQ-23)
 
@@ -306,7 +347,8 @@ The binding rules are:
    - JSON Schema 2020-12,
    - RFC 3339 (timestamps), RFC 4648 (base64url), RFC 3986 (URIs),
    - the in-toto `DigestSet` shape.
-2. **Reserved for future use, not normative in v0.1:** DSSE, as the
+2. **Reserved for future use, not normative in v0.1, with no choice made:**
+   DSSE, as the
    preferred signing envelope (D4.7).
 3. **Interoperability, not dependency.** MCP, A2A, CloudEvents,
    OpenTelemetry, in-toto attestations, SLSA, OIDC and SPIFFE are treated as
@@ -395,8 +437,9 @@ They do not modify ADR 0001.
     resolved by adding a fifth core protocol without a new ADR that amends
     ADR 0001.
 
-The residual part of **OQ-4** stays open: which parties sign which documents,
-and how keys are managed, rotated and revoked. It depends on OQ-5.
+The residual part of **OQ-4** stays open: which signature envelope is used
+(DSSE is the preferred candidate), which parties sign which documents, and
+how keys are managed, rotated and revoked. It depends on OQ-5.
 
 ## Verification status of cited standards
 

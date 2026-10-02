@@ -15,7 +15,7 @@ These questions block **all four** protocols:
 | Question | State |
 |---|---|
 | OQ-1, OQ-2, OQ-3, OQ-23 | Resolutions proposed in ADR 0002 (D1, D2, D3, D5). Still blocking until ADR 0002 is accepted. |
-| OQ-4 | Canonicalization, digests and envelope choice proposed in ADR 0002 (D4). The signing residual (who signs, key management) does **not** block field-level specification, because signing is reserved and any future envelope would be carried outside documents (D4.7). It does block any claim of authenticity. |
+| OQ-4 | Canonicalization, digests and digest matching proposed in ADR 0002 (D4.1 to D4.6). The signing residual (which envelope, with DSSE the preferred candidate; who signs; key management) stays **open**. It does **not** block field-level specification, because signing is reserved and any future envelope would be carried outside documents (D4.7). It does block any claim of authenticity. |
 | OQ-26 Identifier namespace | Open. Every document type identifier needs it (D2.2). |
 | OQ-27 Resource limits | Open. Every protocol must state its limits (D1.4). |
 | OQ-5 Identity model | Open. Every protocol names actors: the principal of a task, the proposer of an action, the holder of a capability, the producer of a receipt. |

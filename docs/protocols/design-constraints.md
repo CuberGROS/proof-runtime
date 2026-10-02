@@ -91,8 +91,12 @@ ADR. It must not quietly deviate.
   or (in future) signing never moves a fact between these categories
   (D4.6). The exact vocabulary and its encoding are open (OQ-17, OQ-21).
 - **C11. Integrity is not correctness** (I2, I6). A matching digest shows
-  only that bytes are unchanged (D4.1). A future signature (D4.7) would
-  show only that a key holder endorsed them. Neither shows that the content
+  only that content is unchanged (D4.1):
+  - the canonical JSON data model, for a protocol document,
+  - the exact bytes, for an opaque artifact.
+
+  A future signature (D4.7) would show only that a key holder endorsed
+  that content. Neither shows that the content
   is true, that its author was authorized, or that an action executed as
   described. v0.1 defines no signatures, and no v0.1 document may claim to
   be signed.

@@ -147,6 +147,14 @@ consumers reject) or a critical extension (which older consumers refuse).
 
 Two further rules close remaining gaps:
 
+- **New values (D2.4).** An older consumer cannot learn from a newer
+  specification that a value added to an existing member is "ignorable".
+  Without a rule, consumers would variously reject, default or misinterpret
+  an unknown enumeration value. D2.4 therefore permits new values in a
+  minor version only if the member's *original* definition declared its
+  value space open and specified unknown-value handling. That handling must
+  be decision-neutral or a rejection. Otherwise a new major version is
+  required.
 - **Pre-1.0 (D2.6).** Unknown `0.x` minor versions are rejected unless the
   specification explicitly declares them compatible. During `0.x`,
   additions are not guaranteed to be decision-neutral.
@@ -254,6 +262,13 @@ Adopt **D2**:
 ### Migration and extension
 
 - Extensions version themselves through the major version in their URI.
+  A major version in a URI is not enough on its own. If an author added a
+  restricting member under an unchanged identifier, an older consumer would
+  still consider the critical identifier "understood" and would ignore the
+  new member, defeating the fail-closed check. D3.2 therefore fixes the
+  security-relevant semantics of each published identifier. Any change
+  with decision effect requires a new identifier, so older consumers fail
+  closed on it.
 - An extension that proves broadly useful can be promoted into a core
   minor version. It may be promoted as an ignorable member only if
   ignoring it is safe (D2.5).
@@ -320,8 +335,23 @@ Adopt **D3**:
 - **No algorithm, no match.** A digest reference with no acceptable
   algorithm is treated as unverifiable. It is never a match. This prevents
   downgrade to weak or unknown algorithms.
-- **What crypto does not prove.** Hashing proves only that bytes are
-  unchanged. Signing proves only that a key holder endorsed bytes. Neither
+- **All-of-accepted matching.** The in-toto `DigestSet` guidance treats two
+  sets as matching if *any* acceptable entry matches (verified). Consider a
+  malformed or malicious set holding the SHA-256 of content A and the
+  SHA-512 of content B. Under "any", one consumer resolves the reference to
+  A and another to B, depending on which algorithms each prefers. D4.4
+  therefore requires every accepted entry to match the same content, and
+  treats a set that cannot satisfy this as invalid.
+- **Canonical-content integrity, not byte integrity.** A document digest is
+  computed over the JCS canonical form, so equivalent serializations share
+  one digest (D4.1). That is what makes cross-implementation references
+  possible. But it also means a matching document digest does not show
+  that the bytes received are the bytes sent; only opaque-artifact digests
+  carry byte integrity. Anything that needs exact bytes, such as a future
+  signature, must operate on the exact payload bytes (D4.7).
+- **What crypto does not prove.** Hashing proves only that content is
+  unchanged: canonical content for documents, exact bytes for artifacts.
+  Signing proves only that a key holder endorsed that content. Neither
   proves that execution happened as described, that the signer was
   authorized, or that the content is true (D4.1, C11).
 - **Laundering.** A runtime record, or a future runtime signature, over a
@@ -362,8 +392,9 @@ Adopt **D4**:
 - an explicit separation of integrity, authenticity, authorization and
   correctness.
 
-DSSE is **reserved** as the preferred future signing envelope. It is not a
-v0.1 requirement.
+DSSE is **reserved** as the preferred candidate for a future signing
+envelope. It is not a v0.1 requirement, and the envelope choice itself
+remains open (OQ-4 residual).
 
 ### Residual risks and future work
 

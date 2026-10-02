@@ -43,6 +43,7 @@
 | X-08 | Extension data appears as a member outside the designated extensions element | Invalid; reject | Invalid; reject | D3.1 |
 | X-09 | Critical list contains duplicate identifiers or non-ASCII identifiers | Invalid; reject | Invalid; reject | D1.2, D3.4 |
 | X-10 | A consumer that understands `E-INFO` attempts to use it as input to a decision | — | Non-conformant consumer; a test harness must detect that its decision differs from X-07's | D3.3 |
+| X-11 | An author adds a new restricting member to `E-RESTRICT` without changing its identifier | — | An older aware consumer would treat the identifier as understood and ignore the new member. Specification defect: the change requires a new identifier. Producer-side validation must fail. | D3.2 |
 
 **X-03 notes.** A missing critical marker on a restrictive extension is the
 case the extension model cannot fully prevent: an unaware consumer has no
@@ -63,6 +64,8 @@ way to know that the extension mattered. Required mitigations:
 | V-05 | Protocol `≥1.0`: document `1.4`, consumer implements `1.2` | Process; unrecognized core members are ignored, and they are decision-neutral by D2.5 | D2.4, D2.5 |
 | V-06 | Protocol `≥1.0`: a minor revision introduces a core member that affects a decision | Specification defect: must be a major version or a critical extension | D2.5 |
 | V-07 | Malformed protocol version (not `MAJOR.MINOR`) | Invalid; reject | D2.2 |
+| V-08 | Protocol `≥1.0`: a minor revision adds a value to a member whose original definition did not declare its value space open | Specification defect: requires a new major version | D2.4 |
+| V-09 | Protocol `≥1.0`: document `1.4` uses a value unknown to a `1.2` consumer, in a member declared open with "reject unknown values" handling | Reject, as the original definition specifies | D2.4 |
 
 ## Integrity (D4)
 
@@ -76,3 +79,6 @@ way to know that the extension mattered. Required mitigations:
 | I-06 | Migration or redaction produces a new document that is presented with the original's digest | Non-conformant. The new document needs its own digest and a reference to the original. | D2.7, D4.5 |
 | I-07 | Reference carries only digest algorithms the consumer does not accept | Unverifiable; never treated as matching | D4.4 |
 | I-08 | A v0.1 document or implementation claims to be signed or DSSE-conformant | Non-conformant claim | D4.7 |
+| I-09 | A digest set has two accepted entries: `sha256` of content A and `sha512` of content B | The set is invalid. It matches neither A nor B, whichever algorithm the consumer prefers. | D4.4 |
+| I-10 | A digest set has two accepted entries, both computed over the candidate content | Match | D4.4 |
+| I-11 | Two serializations differ only in member order and string escaping (`"a"` versus `"a"`) | Same document content digest. This is canonical-content integrity, not byte integrity; byte equality is not claimed. | D4.1, D4.2 |
