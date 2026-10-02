@@ -158,10 +158,21 @@ addressed by a defined compensating action.
 **Rationale.** Partial, unrecorded effects make recovery and verification
 unreliable.
 
-**Implication.** Rollback or compensation, and its outcome, are recorded as
-evidence. If neither succeeds, that failure is recorded explicitly and is
-never hidden. Handling of irreversible effects is an
-[open question](adr/0001-architecture-freeze.md#open-questions) (OQ-11).
+**Implication.**
+
+- I10 is satisfied only when the failed transaction's effects are actually
+  rolled back, or addressed by a compensating action that succeeds.
+  Attempting rollback or compensation is not the same as recovering.
+- Every rollback or compensation attempt, and its outcome, is recorded as
+  evidence.
+- If both rollback and compensation fail, the records must identify the
+  unrecovered effects. They must explicitly classify the situation as an
+  **unresolved violation of I10**, and it is never hidden. While the
+  violation is unresolved, neither successful recovery nor verified
+  completion may be claimed for the affected task.
+- Detailed transaction semantics, including irreversible effects and
+  failed compensation, are an
+  [open question](adr/0001-architecture-freeze.md#open-questions) (OQ-11).
 
 ## Enforcement scope
 

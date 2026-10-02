@@ -152,8 +152,21 @@ above. Their intended roles, requirements and blocking questions are in
 The following flow shows how a proposed action is handled. It describes
 intended behavior, not an implemented API.
 
-In the diagram, a `break` block marks a point where the flow **ends**:
-nothing after it happens for that action.
+In the diagram, a `break` block marks a point where the runtime's decision
+ends the flow for that action.
+
+**Enforcement scope of this flow.** What a denial actually prevents depends
+on the integration grade and enforcement boundary (see
+[Integration grades](#integration-grades)):
+
+- **Within a boundary the runtime mediates** (the Managed grade, or an
+  Integrated operation that passes through a host-exposed control point), a
+  denial or rejection prevents the action from proceeding.
+- **Outside such a boundary** (the Observer grade, or an Integrated
+  operation outside the exposed control points), a denial is a recorded
+  runtime decision only. It does not prove the host refrained from executing
+  the action. Any statement that the host did not execute it is
+  host-attested at most (I5).
 
 ```mermaid
 sequenceDiagram
@@ -168,14 +181,14 @@ sequenceDiagram
     C->>C: Check identity, capability, policy and risk
 
     break Effectful action without covering capability, or policy denies
-        C-->>M: Denied (decision recorded, nothing executes)
+        C-->>M: Denied (decision recorded)
     end
 
     opt Policy requires external approval (privilege expansion or high-risk action)
         C->>A: Request authorization / approval
         break Approver rejects
             A-->>C: Rejected (decision recorded)
-            C-->>M: Denied (nothing executes)
+            C-->>M: Denied (decision recorded)
         end
         A-->>C: Approved (decision recorded)
     end
@@ -195,11 +208,15 @@ sequenceDiagram
 Notes on the flow:
 
 1. If an effectful action has no covering capability (I7), or policy
-   denies the action, the denial is recorded and nothing executes. Which
+   denies the action, the denial is recorded. Within a mediated boundary,
+   the action does not proceed. Outside one, the denial is a recorded
+   decision only (see *Enforcement scope of this flow* above). Which
    actions count as effectful is an open question (OQ-10).
 2. When policy requires external approval, the request has two outcomes,
    and both are recorded. **Approved** continues to execution. **Rejected**
-   ends the flow; the action never reaches the EXECUTION plane.
+   is treated as a denial, with the same enforcement scope as note 1:
+   within a mediated boundary, the action never reaches the EXECUTION
+   plane.
 3. Under I8 and I9, policy alone may authorize a privilege expansion or a
    high-risk action, if that policy is external to the requesting actor.
    The diagram shows only the case where policy requires an external
@@ -208,8 +225,10 @@ Notes on the flow:
    verification outcome in the TRUST plane can do that, and only when
    evidence supports the claim. The set of possible verification outcomes
    is not yet defined (OQ-17).
-5. Rollback or compensation, and whether it succeeded, are part of the
-   evidence.
+5. Rollback or compensation attempts, and their outcomes, are part of the
+   evidence. An attempt is not a successful recovery. If both fail, the
+   situation is handled as described under
+   [I10](../invariants.md#i10--failed-transaction---rollback-or-compensation).
 
 ### Task completion
 
