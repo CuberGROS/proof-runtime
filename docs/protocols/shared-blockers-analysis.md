@@ -77,8 +77,8 @@ are listed in [Sources and verification](#sources-and-verification).
 | Option | Form | Durability | Project control | Cost and process | Assessment |
 |---|---|---|---|---|---|
 | **A. Project-controlled DNS domain** | `https://{domain}/...` | As long as the domain is renewed. A lapse lets a third party register the domain and mint look-alike identifiers. | Full, once registered. | Annual registration fee. Needs a registrant and renewal discipline. | The conventional choice for JSON Schema `$id` values, in-toto predicate types and A2A extension URIs. Humans can look up documentation. |
-| **B. w3id.org permanent identifier** | `https://w3id.org/{project}/...` | The service is run by a consortium of organizations, and identifiers are "intended to be around for as long as the Web is around" (w3id README). The redirect target can move if hosting changes. | Partial. The project controls the redirect target, through pull requests to `perma-id/w3id.org` that the service's maintainers review and merge. Administrators "may deny requests for identifiers that are too generic". | No fee. A pull request to a third-party repository. | Durable and free. But the URI authority belongs to a third party, so R26.3 is met only in part. |
-| **C. `tag:` URI (RFC 4151)** | `tag:{domain-or-email},{YYYY-MM-DD}:...` | Very high. The date fixes ownership at minting time, so a later owner of the domain cannot mint the same tags. | Requires control of a domain or email address on the minting date only. | No registration. No resolution mechanism. | Best resistance to domain lapse, and naturally never fetched (R26.5). Unfamiliar to most implementers. Does not give humans a documentation link. Using a personal email address would tie the namespace to an individual. |
+| **B. w3id.org permanent identifier** | `https://w3id.org/{project}/...` | The service is run by a consortium of organizations, and identifiers are "intended to be around for as long as the Web is around" (w3id README). The redirect target can move if hosting changes. | Partial. The project controls the redirect target, through pull requests to `perma-id/w3id.org` that the service's maintainers review and merge. Administrators "may deny requests for identifiers that are too generic". | No fee. A pull request to a third-party repository. | Durable and free. But the URI authority belongs to a third party, so it does **not** meet R26.3, the control requirement stated in OQ-26. **Not a resolving option** under ADR 0003. Adopting it would need an explicit owner governance decision and a new ADR that changes that requirement. |
+| **C. `tag:` URI (RFC 4151)** | `tag:{domain-or-email},{YYYY-MM-DD}:...` | Very high. The date fixes ownership at minting time, so a later owner of the domain cannot mint the same tags. | Meets R26.3 when the tagging entity is a domain the project controls (or a role email address at such a domain) on the minting date, with evidence of that control kept (D6.8). A personal email address does not meet it, because the individual, not the project, controls it. | No registration. No resolution mechanism. | Best resistance to domain lapse, and naturally never fetched (R26.5). Unfamiliar to most implementers. Does not give humans a documentation link. |
 | **D. Formal URN namespace (RFC 8141)** | `urn:{nid}:...` | Very high once registered. | High, after registration. | IANA registration with expert review: slow, and heavy for a pre-alpha project. | Disproportionate now. Could be adopted later through a new ADR. |
 | **E. GitHub-hosted URL** | `https://github.com/CuberGROS/...` or `https://cubergros.github.io/...` | Tied to the account name and the repository's location. After a rename or transfer, the old name can be claimed by someone else. | GitHub controls the authority. The project controls only a path under an account name. | Free and immediate. | Fails R26.2 and R26.3. Not recommended for identifiers, though suitable for hosting human-readable documentation. |
 | **F. `urn:uuid:` (random)** | `urn:uuid:...` | Unique forever. | None. Anyone can mint any UUID, so ownership of a namespace cannot be expressed. | Free. | Cannot express a reserved core namespace (R26.3). Opaque to humans. Rejected for the core namespace. |
@@ -130,40 +130,56 @@ are listed in [Sources and verification](#sources-and-verification).
 combined with the rule that identifiers are never dereferenced and with
 operational safeguards against lapse.**
 
-Why A rather than B or C:
+Why A:
 
 - Under the never-dereference rule (D6.2), the main technical weakness of A
   (a lapsed domain) cannot change any conformant consumer's decision. What
   remains is a social-engineering risk, and the safeguards in D6.6 reduce
   it.
-- A meets R26.3 fully. B meets it only through a third party's review
-  process.
+- A meets R26.3 fully.
 - `https` identifiers match established practice for JSON Schema `$id`,
   in-toto predicate types and A2A extensions. This lowers the chance that
   implementers mis-handle them, and lets humans find documentation.
 
-Ranked fallbacks, in case the owner prefers not to hold a domain:
+**The only alternative that also meets R26.3 is option C (`tag:`).** It
+suits an owner who values resistance to lapse over discoverability. It
+meets the control requirement as follows (D6.8):
 
-1. **Option C (`tag:`)**, if resistance to lapse matters more than
-   discoverability. It still requires a domain, or a role email address
-   (not a personal one), controlled on the minting date.
-2. **Option B (w3id.org)**, if no domain or role email is available. Under
-   B the project depends on a third party's governance, so R26.3 holds only
-   in part.
+- **Ownership.** RFC 4151 entitles only the entity that controlled the
+  tagging entity at 00:00 UTC on the tag's date to mint tags under it. If
+  that entity is a domain the project controls, the namespace belongs to
+  the project from the minting date onward. A later registrant of a lapsed
+  domain is not entitled to mint tags with that date. A personal email
+  address would make the namespace the individual's, so it is excluded.
+- **Evidence.** The project keeps a record of its control of the domain on
+  that date, for example the registration record, so that ownership can be
+  shown later.
+- **One spelling.** One tagging entity and one full `YYYY-MM-DD` date are
+  used for the whole core namespace (D6.3).
+- **Template.** With `{root}` set to `tag:{domain},{YYYY-MM-DD}:{base}`,
+  the template below gives, for example,
+  `tag:{domain},{YYYY-MM-DD}:{base}/action-ir/v1`. RFC 4151 allows `/` in
+  the tag's specific part (`specific = *( pchar / "/" / "?" )`,
+  **corroborated**), so the same template serves A and C.
 
-Options D, E and F are not recommended.
+**Not resolving options.** Option B (w3id.org) puts the authority under a
+third party's governance, so it does not meet R26.3. It stays in the
+alternatives for completeness only. Adopting it would require an explicit
+owner governance decision and a new ADR that changes the control
+requirement recorded in ADR 0002's OQ-26. Options D, E and F are not
+recommended, and E and F do not meet R26.3 at all.
 
 **Owner decision required.** The project cannot pick the authority on the
 owner's behalf. The owner must:
 
-1. choose option A, B or C,
-2. under A, choose and register the domain, decide who the registrant is
+1. choose option A (proposed) or C,
+2. choose and register the domain, decide who the registrant is
    (preferably an organization or role account rather than an
    individual), and commit to renewal,
-3. under C, choose the tagging entity and the minting date,
-4. under B, choose the w3id.org top-level name and submit the redirect
-   request,
-5. confirm or change the identifier template and the minting rule below.
+3. under C, also choose the minting date and record the evidence of
+   control on that date,
+4. record `{root}`, and confirm or change the identifier template and the
+   minting rule below.
 
 **Proposed identifier template** (independent of the option chosen, once
 `{authority}` is fixed):
@@ -174,8 +190,9 @@ core extension identifier: {root}/ext/{name}/v{MAJOR}
 schema $id (SHOULD):       {root}/{protocol}/v{MAJOR}/schema/{MAJOR}.{MINOR}
 ```
 
-- `{root}` is the core namespace root, for example `https://{domain}/{base}`
-  under option A. It is fixed by the owner decision.
+- `{root}` is the core namespace root: `https://{domain}/{base}` under
+  option A, or `tag:{domain},{YYYY-MM-DD}:{base}` under option C. It is
+  fixed by the owner decision.
 - `{protocol}` is one of `task-capsule`, `action-ir`,
   `capability-manifest` and `evidence-receipt`. Only the four frozen core
   protocols can appear here (ADR 0001 §2).
@@ -209,10 +226,17 @@ published specification version may contain it.
 | N-04 | Consumer encounters an identifier whose host does not resolve or is offline | No change in behavior. Identifiers are never dereferenced. |
 | N-05 | Producer emits a core identifier containing a percent-encoded character, a query or a fragment | Invalid (producer-side) under D6.3. |
 | N-06 | A published specification contains the `example.invalid` placeholder | Invalid publication under D6.7. |
+| N-07 | Under option C, a core identifier uses the year-only date form (`tag:{domain},2026:...`) or an uppercase domain | Invalid (producer-side) under D6.3. Consumers see an unknown type and reject. |
+| N-08 | `{root}` is recorded as a w3id.org URI without a new ADR changing the control requirement | Not a valid resolution of OQ-26 under D6.1. |
+| N-09 | Under option C, the tagging entity is a maintainer's personal email address | Not eligible under D6.8. |
 
 ### Residual risks
 
 - Under option A, social-engineering risk if the domain lapses (see above).
+- Under option C, ownership rests on evidence kept by the project, and on
+  implementers respecting RFC 4151's minting rule. No technical mechanism
+  prevents anyone from writing a tag string. As with option A, D6.2 and
+  D6.5 keep that from affecting any consumer decision.
 - Extension identifiers are owned by their authors, and the project cannot
   enforce canonical spelling for them. Misspelling fails closed for
   critical extensions (D3.4).
@@ -461,9 +485,9 @@ may hold several roles. Holding one role never implies another.
 | **Entity** | Anything that can act or be acted for: a person, a system, an agent. | Not a role. |
 | **Identifier / identity reference** | A name for an entity: an `(issuer, subject)` pair (D8.2). | Not proof that anyone is that entity. |
 | **Credential** | Something an entity presents to an issuer or verifier to prove an identity: an OIDC ID token, a SPIFFE SVID, a client certificate. External to the protocols. | Never carried in protocol documents (C12). |
-| **Authenticated principal** | An identity that CONTROL itself has authenticated, by a stated method, at a stated boundary, for a stated interaction. | Not permanent. A recorded authentication is a fact about one interaction, not a reusable credential. |
+| **Authenticated principal** | An identity that CONTROL itself has authenticated, by a stated method, at a stated boundary, for a stated interaction. One of three provenances (D8.5): authenticated, trusted-attested, self-asserted. | Not permanent. A recorded authentication is a fact about one interaction, not a reusable credential. |
 | **Principal** | ADR 0001: "a human or system identity on whose behalf, or with whose authority, a task runs". Authority traces back to principals and policy. | A principal's authority is still evaluated by CONTROL. It is never implied by identity alone. |
-| **Actor** | The entity that directly performs a step, for example the entity that submits a proposal. | Not necessarily the principal. |
+| **Actor** | The entity that directly performs a step, for example the entity that submits a proposal. Established by CONTROL (D8.8), never taken from the proposal's content. | Not necessarily a different entity from the principal. In a direct action, actor and principal are the same entity and carry the same identity reference. |
 | **Agent** | An entity whose proposals are produced by a model through an agent harness. | Never a source of authority (D8.7). |
 | **Model** | The AI model inside an agent. | Not an entity kind (D8.4). Described by attributed, non-authoritative descriptors. |
 | **Delegate** | An actor acting on behalf of a principal, under a delegation that CONTROL recognizes. | Delegation never expands authority (I8). Its scoping and attenuation are OQ-7. |
@@ -499,17 +523,32 @@ may hold several roles. Holding one role never implies another.
 - **Self-asserted identity.** A model or document can claim any identity.
   If a self-asserted identity could feed an authorization decision, a
   prompt-injected model could claim to be a privileged principal. Only
-  identities that CONTROL authenticated itself, or that come from an issuer
-  CONTROL is configured to trust, may be decision inputs (D8.5).
+  identities that CONTROL authenticated itself, or that a trusted attester
+  delivered to CONTROL directly, may support a permit (D8.5).
+- **Relayed attestation.** An attestation that reaches CONTROL through the
+  actor, the model or a document can be forged or replayed by whoever
+  relays it. It is therefore self-asserted, whatever attester it names
+  (D8.5).
+- **Provenance laundering.** If a record's provenance could be upgraded
+  later, a decision made on a weak identity would look as if it rested on a
+  strong one. Provenance is fixed when recorded (D8.5).
 - **Kind spoofing.** If kind were self-declared, an agent could declare
   itself `human` and act as an approver. Kind must come from CONTROL's
   registration of the issuer or entity, never from the actor's own content
   (D8.4).
-- **Confused deputy and impersonation.** An agent using its principal's
-  identity, for example by acting with the principal's token, erases the
-  distinction between what the principal did and what the agent did. Every
-  proposal is attributed to an actor and, separately, to the principal on
-  whose behalf it acts (D8.8).
+- **Impersonation.** An agent using its principal's identity, for example
+  by acting with the principal's token, erases the distinction between what
+  the principal did and what the agent did. The actor is always the
+  identity CONTROL established for the submitter, and "actor equals
+  principal" is valid only when that identity is the principal (D8.8).
+  Requiring the two references to *differ* would not help. It would make
+  ordinary direct action impossible, because a human or service acting for
+  itself has one identity reference.
+- **Confused deputy.** If an actor's own capabilities could be combined
+  with a principal's delegated authority, the actor could exceed both. In a
+  delegated action, authority is bounded by the principal's holdings and
+  the delegation, and the actor's unrelated capabilities are not added
+  (D8.8).
 - **Unverified delegation chains.** RFC 8693 treats prior actors in nested
   `act` claims as informational only and excludes them from access control
   **(corroborated)**. Recent proposals point out that this leaves the path
@@ -538,6 +577,55 @@ may hold several roles. Holding one role never implies another.
   hard to redact. Opaque subjects keep personal attributes out of core
   identity references (D8.12).
 
+### Identity, capability holding and enforcement
+
+The first draft of D8 was inconsistent. D8.5 allowed an identity from a
+trusted attester as an input to authorization, while D8.9 required the
+*authenticated* actor to match a capability's holder. Read together, it was
+unclear whether a trusted-attested identity could ever satisfy a holder
+check. The corrected D8 separates four questions:
+
+1. **What provenance does the identity have?** D8.5 defines three:
+   authenticated, trusted-attested and self-asserted. A trusted attester
+   must be named in CONTROL's configuration for that issuer, and must
+   deliver its attestation to CONTROL directly over an authenticated
+   channel. Anything else is self-asserted.
+2. **What can each provenance support?**
+   - Self-asserted identities can be recorded, and can cause denial or
+     restriction, but never support a permit.
+   - Authenticated and trusted-attested identities can support a permit,
+     subject to question 3.
+3. **What does a capability-holder or approver check require?** This is a
+   policy choice (PC-1 below).
+4. **Is anything enforced?** Never by provenance alone. At the Observer
+   grade, and for Integrated operations outside an exposed control point,
+   every decision is a record (C16). A permit takes effect only where an
+   enforcement point at a controlled boundary receives it directly from
+   CONTROL (D8.14, D9.4, D9.5).
+
+Fail-closed behavior is unchanged by this correction. Every path that is
+not explicitly allowed ends in denial, and denial is always recordable
+(D9.3).
+
+#### PC-1: provenance required for capability-holder checks
+
+| Option | Rule | Consequence |
+|---|---|---|
+| **α. Authenticated only** | Only an identity CONTROL authenticated itself satisfies a holder check, or the match between an actor and the delegate named in a delegation. | Strictest. Where the runtime sees only host-attested identities (common at the Integrated grade, always at the Observer grade), every effectful proposal is denied. At the Observer grade this still yields useful records ("denied, but observed executing"). At the Integrated grade it blocks hosts whose control point authenticates users itself. |
+| **β. Authenticated by default; per-attester allowance (proposed)** | Authenticated is required unless CONTROL's configuration explicitly allows a named trusted attester to satisfy holder checks for a named issuer. | Fail-closed by default. Supports Integrated hosts whose identity handling the deployer has chosen to trust, and every such reliance is explicit, configured and recorded. |
+| **γ. Any trusted-attested identity** | A trusted-attested identity satisfies holder checks wherever the attester is trusted for the issuer. | Most permissive. Trusting an attester to name identities becomes, silently, trusting it to unlock capabilities. Not recommended. |
+
+Under every option, approvers must be authenticated (D8.9). An approval is
+the I8 and I9 safeguard against expansion, so a weaker identity there would
+undercut the invariant. The owner may relax this only through OQ-9.
+
+#### PC-2: may an agent be a principal?
+
+| Option | Rule | Consequence |
+|---|---|---|
+| **P1. Never (proposed)** | Every agent proposal is a delegated action from a human or service principal. | Authority always traces to a non-model principal (I1). Every agent action carries a validated delegation (D8.8). |
+| **P2. For capabilities granted directly to the agent** | An agent may be its own principal, but only for capabilities an external principal granted to it under I8. | Supports long-running autonomous agents without a per-task principal. But the agent's authority then no longer traces to a principal at decision time, only to a past grant, which makes revocation and attribution weaker. |
+
 ### Recommendation
 
 1. Adopt the distinctions above as normative vocabulary (D8.1).
@@ -550,9 +638,10 @@ may hold several roles. Holding one role never implies another.
    comes from CONTROL's registration, never from self-assertion. Models
    and organizations are not kinds. Runtime, host, verifier and approver
    are roles (D8.4).
-5. Record **identity provenance** as authenticated, attested or
-   self-asserted, mirroring C10. Self-asserted identity is never an input
-   that permits (D8.5).
+5. Record **identity provenance** as authenticated, trusted-attested or
+   self-asserted, mirroring C10. A trusted attestation must come directly
+   from a configured attester. Self-asserted identity never supports a
+   permit. Provenance is never upgraded (D8.5).
 6. **Identification never grants authority.** Authorization needs a CONTROL
    decision over the exact proposal, with a covering capability (I7) and,
    where required, policy or approval (I9). Identity selects which
@@ -562,14 +651,22 @@ may hold several roles. Holding one role never implies another.
    only restrict, never permit, and a restriction based on an
    unauthenticated descriptor is recorded as giving no enforcement
    assurance. Whether an agent may be a verifier is left to OQ-18.
-8. **Actor and principal are always distinct references.** An actor never
-   uses its principal's identity as its own. Delegation hops count only if
-   CONTROL validated them. Delegation never expands authority (I8). Its
-   mechanics are OQ-7 (D8.8).
-9. A Capability Manifest names its holder by identity reference. CONTROL
-   considers a capability only for a proposal whose authenticated actor
-   matches the holder, or under delegation rules that CONTROL validates
-   (OQ-7) (D8.9).
+8. **Actor and principal are always separate attributions** (D8.8). They
+   need not be different identity references:
+   - **Direct action:** a human or service acting for itself is both actor
+     and principal, with one identity reference.
+   - **Delegated action:** CONTROL records the actor's own identity, the
+     principal's identity and the validated delegation. Without a validated
+     delegation, the proposal is denied.
+   - No impersonation, and no combining of the actor's unrelated
+     capabilities with the principal's. Delegation hops count only if
+     CONTROL validated them. Delegation mechanics are OQ-7.
+   - Agents are never principals (PC-2, option P1).
+9. **Capability holders and approvers** (D8.9). A capability is considered
+   only for its holder in a direct action, or for the principal through a
+   validated delegation. Holder checks require an authenticated identity
+   unless an attester is explicitly allowed (PC-1, option β). Approvers
+   must be authenticated.
 10. Signing, when defined, binds **keys to identity references**. An
     identity is never defined by a key (D8.10).
 11. A recorded identity reference is a statement by the record's producer,
@@ -581,7 +678,12 @@ may hold several roles. Holding one role never implies another.
       full SPIFFE ID.
     - An adapter's mapping counts as authenticated only if CONTROL
       validated the underlying credential itself. Otherwise it is
-      attested.
+      trusted-attested if the adapter is a configured trusted attester, and
+      self-asserted if not.
+14. **Recording is not enforcement** (D8.14). Provenance rules govern what
+    CONTROL may rely on, not what is enforced. Observer-grade decisions are
+    records only, and a permit takes effect only at a controlled
+    boundary.
 
 ### Unresolved dependencies
 
@@ -599,7 +701,7 @@ may hold several roles. Holding one role never implies another.
 
 | # | Case | Expected result |
 |---|---|---|
-| ID-01 | A proposal's content claims its actor is a human principal | Self-asserted. Never used to permit. The actor is the authenticated identity of the submitter. |
+| ID-01 | A proposal's content claims its actor is a human principal | Self-asserted. Never used to permit. The actor is the identity CONTROL established for the submitter. |
 | ID-02 | Same subject string under two different issuers | Two different identities. |
 | ID-03 | An entity registered as `agent` is recorded as an approver | CONTROL rejects the approval. The approval cannot satisfy I8 or I9. |
 | ID-04 | An agent submits a proposal using its principal's identity as actor | Rejected as impersonation. The actor must be the agent's own identity. |
@@ -607,6 +709,17 @@ may hold several roles. Holding one role never implies another.
 | ID-06 | A Capability Manifest naming holder H is presented by actor A ≠ H | The capability is not considered for A, unless CONTROL validates a delegation (OQ-7). |
 | ID-07 | Policy permits an action because a harness reports model X | Invalid policy. Model descriptors may not permit. |
 | ID-08 | An Evidence Receipt names a principal, and a consumer uses that as proof of who the principal is | Non-conformant. A recorded identity is not an authentication. |
+| ID-09 | **Direct self-representation.** Human H, authenticated by CONTROL, submits a proposal on H's own behalf | Valid. Actor and principal are both recorded, each with H's identity reference and provenance `authenticated`. No delegation is required. Holder checks match H directly. |
+| ID-10 | **Direct self-representation by an agent.** Agent G submits a proposal naming itself as principal | Under PC-2 option P1, denied: an agent is never a principal. Recorded with G as actor and the principal claim as self-asserted. |
+| ID-11 | **Delegated identity, validated.** Agent G, authenticated, submits on behalf of human P under a delegation CONTROL has validated | Evaluated on P's behalf. The record keeps G as actor, P as principal and a reference to the delegation. Authority is bounded by P's holdings and the delegation. G's own unrelated capabilities are not added. |
+| ID-12 | **Delegated identity, not validated.** Agent G claims to act on behalf of P, and CONTROL holds no validated delegation | Denied. G is recorded as actor. P is recorded as principal with provenance `self-asserted`. |
+| ID-13 | **Impersonation.** A submitter authenticated as G names P as actor | The actor is recorded as G. The claim that P is the actor is recorded as self-asserted. The proposal is never evaluated as P's direct action. |
+| ID-14 | **Trusted-attested identity, allowed.** Host T is configured as a trusted attester for issuer I, and allowed to satisfy holder checks (PC-1, option β). T attests actor X directly to CONTROL. X holds a covering capability | Permit possible. The record states provenance `trusted-attested` and names T. Enforcement happens only if a controlled boundary receives the permit from CONTROL. |
+| ID-15 | **Trusted-attested identity, not allowed.** As ID-14, but T is not allowed to satisfy holder checks | Denied for lack of a covering capability (I7). Recorded with provenance `trusted-attested`. |
+| ID-16 | **Relayed attestation.** An attestation naming trusted attester T arrives inside the proposal, not directly from T | Self-asserted. Never supports a permit. |
+| ID-17 | **Untrusted attester.** Host U, not configured as trusted, attests actor X | Self-asserted, with U noted as the source. Never supports a permit. |
+| ID-18 | **No provenance upgrade.** A decision was recorded with a self-asserted actor, and the same entity later authenticates | The earlier record is unchanged. A new evaluation produces a new decision record. |
+| ID-19 | **Trusted-attested approver.** An approval arrives from an approver whose identity is only trusted-attested | Does not satisfy the approval requirement (D8.9). |
 
 ### Residual risks
 
@@ -615,7 +728,11 @@ may hold several roles. Holding one role never implies another.
   model. It is mitigated by narrow issuer trust configuration (D8.3).
 - **Attested identity at the Observer grade.** The runtime may only ever
   see host-attested identities. Decisions remain records, not enforcement
-  (C16), and the records must say the identity was attested.
+  (C16), and the records state the actual provenance (D8.5, D8.14).
+- **Misconfigured trust.** Under PC-1 option β, wrongly allowing an attester
+  lets it unlock capabilities. The allowance is explicit and recorded in
+  every decision that relies on it, so the mistake is auditable, but it is
+  not prevented.
 - **Three kinds may prove too few.** A new kind requires a new ADR, because
   kind affects decisions (D2.5).
 
@@ -688,8 +805,17 @@ That changes the analysis of the alternatives:
   recorded (R29.6).
 - **Bound to the exact proposal (R29.2).** It references the proposal by
   content digest, and every input it relied on by digest or identity
-  reference: Capability Manifests, policy (OQ-6), approvals (OQ-9), risk
-  classification (OQ-8), and the authenticated actor and principal (D8).
+  reference: Capability Manifests, policy (OQ-6), approvals (OQ-9) and
+  risk classification (OQ-8). It records the actor and principal as the
+  identity references CONTROL used, each with its D8.5 provenance, and,
+  for a delegated action, the validated delegation (D9.3).
+- **Recordable whatever the identity.** The record does not require
+  authenticated identities. A denial of a request whose only identities are
+  self-asserted, or an Observer-grade decision based on host-attested
+  identities, must still be recordable, or the audit trail would lose
+  exactly the events most worth reviewing. Only a *permit* needs an
+  identity strong enough under D8.5 and D8.9. The provenance is recorded as
+  it was, never upgraded, and recording it authenticates no one.
 - **Auditable (R29.3).** Its format is specified, versioned and governed by
   ADR 0002's rules, so third-party verifiers can interpret it. Evidence
   Receipts reference it by digest.
@@ -804,6 +930,11 @@ Effect on the dependency map, **if accepted**:
 | DR-07 | A decision record, at the Observer grade, states that the action was prevented | Invalid. Decision records never claim enforcement. |
 | DR-08 | A decision record produced by an agent or a host | Invalid. Only CONTROL produces decision records. |
 | DR-09 | A decision record whose version differs from the Evidence Receipt protocol version line | Invalid. Decision records share the protocol's version line (D9.9). |
+| DR-10 | **Rejected request, self-asserted identities.** A proposal whose actor and principal claims are all self-asserted is denied | A deny decision record is produced, referenceable by digest. Both identities are recorded with provenance `self-asserted`. The record neither authorizes nor authenticates anyone. |
+| DR-11 | Observer-grade decision where the host supplies no identity at all | Recorded. The record states that no identity is available, and substitutes none. It makes no enforcement claim. |
+| DR-12 | A decision record whose actor is `trusted-attested` is later presented as proof of that actor's identity | Not accepted. A recorded identity is not an authentication (D8.11). |
+| DR-13 | A permit decision record whose actor provenance is `self-asserted` | Invalid. A permit never rests on a self-asserted identity (D8.5, D9.3). |
+| DR-14 | A later record, or a copy, presents an identity with stronger provenance than the original decision record | Invalid. Provenance is never upgraded (D8.5). |
 
 ### Residual risks
 
@@ -830,7 +961,7 @@ the newly cited sources should be added there.
 
 | Source | Used for | Verification |
 |---|---|---|
-| RFC 4151, `tag` URI scheme | OQ-26, option C | **Corroborated** (search excerpt): syntax `tag:` authorityName `,` date `:` specific; the tagging entity must control the domain or email at 00:00 UTC on the date; no authoritative resolution mechanism. |
+| RFC 4151, `tag` URI scheme | OQ-26, option C | **Corroborated** (search excerpts): syntax `tag:` authorityName `,` date `:` specific, with `specific = *( pchar / "/" / "?" )`; dates in `YYYY`, `YYYY-MM` or `YYYY-MM-DD` form; the tagging entity must control the domain or email at 00:00 UTC on the date; no authoritative resolution mechanism. |
 | RFC 8141, URNs | OQ-26, option D | **Unverified**: formal namespace registration with IANA. |
 | RFC 2606 and RFC 6761, reserved `.invalid` | OQ-26, placeholder | **Unverified** in this session. |
 | w3id.org README ([perma-id/w3id.org](https://github.com/perma-id/w3id.org)) | OQ-26, option B | **Verified (primary)**: consortium management, HTTPS-only, "intended to be around for as long as the Web is around", changes by pull request, administrators may deny generic names. |
