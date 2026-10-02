@@ -26,14 +26,17 @@ Those choices are shared by all four protocols. Making them separately for
 each protocol would produce four incompatible conventions. So they are
 decided once, here, before any protocol is specified.
 
-The detailed analysis behind each decision is in
-[docs/protocols/foundations-analysis.md](../protocols/foundations-analysis.md):
-requirements, alternatives, interoperability, security consequences,
-migration and residual risks. The cross-protocol constraints these
-decisions must satisfy are in
-[docs/protocols/design-constraints.md](../protocols/design-constraints.md).
-The standards evaluation is in
-[docs/protocols/standards-matrix.md](../protocols/standards-matrix.md).
+Supporting documents:
+
+- [Analysis](../protocols/foundations-analysis.md): requirements,
+  alternatives, interoperability, security consequences, migration and
+  residual risks behind each decision.
+- [Design constraints](../protocols/design-constraints.md): the
+  cross-protocol constraints these decisions must satisfy.
+- [Standards matrix](../protocols/standards-matrix.md): the standards
+  evaluation, with the verification status of each citation.
+- [Conformance cases](../protocols/conformance-cases.md): proposed test
+  cases for the extension, version and integrity rules.
 
 ## Decision
 
@@ -41,6 +44,15 @@ This ADR decides only shared, cross-protocol conventions. It defines no
 protocol fields. Where it names an information element that every document
 must carry (for example, "a protocol version"), the element's field name,
 position and exact syntax are left to the protocol specifications.
+
+### Terms used in this decision
+
+- **Security-relevant decision.** Any decision about authorization,
+  capability scope, whether or how an action executes, or a verification
+  outcome.
+- **Decision-neutral.** Content is decision-neutral if no conformant
+  consumer uses it as input to a security-relevant decision. Its presence
+  or absence therefore cannot change such a decision.
 
 ### D1. Encoding and schema (OQ-1)
 
@@ -79,8 +91,9 @@ position and exact syntax are left to the protocol specifications.
      the implementation. Validators MUST NOT fetch `$ref` targets from the
      network while validating documents.
    - Schemas MUST NOT rely on the `format` keyword for any security-relevant
-     check, because in 2020-12 `format` is an annotation by default and is
-     not asserted unless a validator opts in.
+     check. In 2020-12, `format` is collected as an annotation, and
+     assertion is disabled by default (JSON Schema Validation 2020-12
+     §7.2.1).
 4. **Resource limits.** Every protocol specification MUST define maximum
    document size and maximum nesting depth. Consumers MUST reject documents
    that exceed them before any further processing. The actual limits are
@@ -93,32 +106,43 @@ position and exact syntax are left to the protocol specifications.
 
 1. **Independent versions.** Each of the four protocols is versioned
    independently. There is no single "Proof Runtime version" on the wire.
-2. **Self-description.** Every protocol document MUST carry two pieces of
-   information:
+2. **Self-description and consistency.** Every protocol document MUST carry
+   two pieces of information:
    - a **document type identifier**: an absolute URI that names the protocol
      and its major version. Its namespace is open (OQ-26).
    - a **protocol version** in the form `MAJOR.MINOR`.
 
-   Patch-level (editorial) revisions of a specification do not appear in
-   documents.
+   The major version encoded in the type identifier MUST equal the `MAJOR`
+   of the declared protocol version. A document in which they differ is
+   invalid, and consumers MUST reject it. Patch-level (editorial) revisions
+   of a specification do not appear in documents.
 3. **Major version.** A major version changes when any change could cause a
    consumer of the previous major version to misinterpret a document.
    A consumer MUST reject a document whose major version it does not
    implement. It MUST NOT attempt best-effort interpretation.
-4. **Minor version.** A minor version MAY only add optional core members, or
-   new values that the specification marks as ignorable. A minor revision
-   MUST NOT change the meaning of an existing member.
-   - A consumer that implements an earlier minor version of the same major
-     version MAY process the document. It ignores core members it does not
-     recognize, subject to D2.5 and D3.
-5. **Monotonic rule.** A change whose omission or non-recognition could
-   cause a consumer to grant more authority, widen a capability, accept
-   weaker evidence, or report a stronger verification outcome MUST NOT be
-   introduced as an ignorable minor addition. It MUST be introduced either
-   as a new major version or as a critical extension (D3.4).
-6. **Pre-1.0.** Protocol versions `0.x` carry no compatibility promise
-   between minor versions. Compatibility rules D2.3 to D2.5 bind from
-   version `1.0` of each protocol.
+4. **Minor version (from 1.0).** For protocol versions `1.0` and later, a
+   minor version MAY only add optional core members, or new values that the
+   specification marks as ignorable, and each such addition MUST be
+   decision-neutral (D2.5). A minor revision MUST NOT change the meaning of
+   an existing member.
+   - A consumer that implements `M.n` MAY process a document declaring
+     `M.m` with `m > n`. It ignores core members it does not recognize.
+     This is safe only because of D2.5.
+   - A consumer MAY process documents declaring any `M.m` with `m ≤ n`.
+5. **Security-relevant changes are never ignorable.** Any change that
+   affects a security-relevant decision MUST be introduced either as a new
+   major version or as a critical extension (D3.4). This applies whether
+   the change would make decisions stricter or more permissive. Ignoring a
+   new restriction is as much a divergence from the producer's intent as
+   ignoring a new permission.
+6. **Pre-1.0 versions.** Protocol versions `0.x` carry no general
+   compatibility promise between minor versions.
+   - A consumer MUST reject a `0.x` document whose exact `MAJOR.MINOR` it
+     does not implement.
+   - The only exception is a protocol specification that explicitly
+     declares two specific `0.x` minor versions compatible; then a consumer
+     MAY accept the declared pair.
+   - D2.4 applies only from `1.0`.
 7. **Immutability and migration.** A document identified by a content
    digest (D4) is never edited in place.
    - Migrating a document to a new version produces a new document. The
@@ -126,6 +150,7 @@ position and exact syntax are left to the protocol specifications.
      retained.
    - A migrated document is attributed to whoever performed the migration,
      not to the producer of the original.
+   - D4.5 governs how digests behave across migration.
 8. **Unsupported versions** are reported as explicit, recorded errors. A
    consumer MUST NOT silently downgrade a document, or guess at a newer one.
 
@@ -140,38 +165,57 @@ position and exact syntax are left to the protocol specifications.
    - The URI includes the extension's major version.
    - Identifiers are compared as exact strings (D1.2).
    - The core namespace (OQ-26) is reserved for protocol specifications.
-3. **Non-critical extensions.** A consumer that does not understand a
-   non-critical extension ignores it for every decision it makes. It
-   preserves the extension byte-for-byte whenever it stores or relays the
-   document.
+3. **Non-critical extensions are decision-neutral.** A non-critical
+   extension MUST be decision-neutral. Every consumer, including one that
+   understands the extension, MUST NOT use it as input to a
+   security-relevant decision. Typical non-critical content includes
+   display hints, correlation identifiers and descriptive domain metadata.
+   - A consumer that does not understand a non-critical extension ignores
+     it.
+   - Its handling when the document is stored, relayed or transformed is
+     governed by D4.5.
 4. **Critical extensions.** Each document MUST carry a list of the extension
    identifiers that are critical for that document (the list may be empty).
-   - A consumer that does not understand every listed critical extension
-     MUST reject the document for any authorization, verification or
-     execution decision. It MUST NOT process the document partially.
+   - A consumer that does not understand every listed critical extension,
+     at the listed major version, MUST reject the document for every
+     security-relevant decision. It MUST NOT process the document
+     partially.
    - Listing an identifier that is not present in the extensions element
      makes the document invalid.
-5. **Monotonic rule for extensions.** Evaluating a document with all of its
-   non-critical extensions removed MUST yield the same or a stricter
-   outcome. Concretely, it must not lead to more authority, a wider
-   capability, or a stronger verification outcome.
-   - Any extension that can relax an authorization, widen a capability, or
-     strengthen a verification outcome MUST be marked critical.
-   - Extensions are expected to restrict or annotate; relaxing requires
-     criticality.
-6. **Stripping attacks.** Removing an extension or a critical marker changes
+5. **What must be critical.** An extension whose semantics can affect a
+   security-relevant decision MUST be marked critical in every document
+   that carries it. This applies to restrictive extensions (for example,
+   "deny this action outside working hours") exactly as it does to
+   permissive ones (for example, "also allow this action"). An unknown
+   extension can therefore never silently weaken or strengthen a decision.
+   - It is either decision-neutral and ignored (D3.3), or critical and
+     fails closed (D3.4).
+6. **Extension specifications declare their class.** Every extension
+   specification MUST state whether the extension is critical (it affects
+   security-relevant decisions) or non-critical (decision-neutral).
+   - A consumer that understands an extension specified as critical, and
+     finds it in a document that does not list it as critical, MUST reject
+     the document as invalid.
+   - A consumer that does not understand the extension cannot detect a
+     missing critical marker. This producer error is a stated residual
+     risk. It is mitigated by producer-side conformance testing and, once
+     available, by authenticity (D4.7). It is not prevented by this ADR.
+7. **Stripping attacks.** Removing an extension or a critical marker changes
    the document's content digest (D4).
    - Before signatures exist, this detects tampering only when a consumer
      already holds the expected digest from an independent source.
    - Protection against an intermediary that strips criticality and
-     re-presents the document requires authenticity (D4.5). This is a
+     re-presents the document requires authenticity (D4.7). This is a
      stated residual risk, not a solved one.
-7. **Industry semantics** (software engineering, finance, healthcare and so
+8. **Industry semantics** (software engineering, finance, healthcare and so
    on) live only in extensions, never in core members.
-8. **Registry.** v0.1 has no central extension registry. Collision
+9. **Registry.** v0.1 has no central extension registry. Collision
    resistance comes from URI ownership.
 
 ### D4. Canonicalization and integrity (OQ-4, partial)
+
+D4.1 to D4.6 are **normative in v0.1**. D4.7 is **reserved**: it records a
+direction for future work and imposes no v0.1 requirement.
 
 1. **Four distinct properties.** Proof Runtime documents and implementations
    MUST keep these apart:
@@ -185,8 +229,8 @@ position and exact syntax are left to the protocol specifications.
      answered only by verification against evidence (I2, I6).
 
    No cryptographic mechanism in this ADR establishes authorization or
-   correctness. A valid digest or signature over an Evidence Receipt does
-   not show that execution happened as described.
+   correctness. A valid digest over an Evidence Receipt does not show that
+   execution happened as described.
 2. **Canonical form.** The canonical form of a protocol document is its
    JSON Canonicalization Scheme (JCS, RFC 8785) serialization. The D1
    profile, in particular integer-only core numbers and ASCII identifiers,
@@ -205,28 +249,55 @@ position and exact syntax are left to the protocol specifications.
      matching.
    - Adding or retiring algorithms does not require a protocol major
      version.
-5. **Future signatures.** Signing is not implemented in v0.1, and no signing
-   infrastructure exists. When signing is introduced:
-   - The preferred envelope is DSSE. It signs exact payload bytes together
-     with a payload type, using its pre-authentication encoding.
-   - Producers SHOULD place the canonical form (D4.2) in the payload, so
-     that the signed bytes and the content digest refer to the same bytes.
-   - Signatures are carried outside the document they sign, so signing never
-     changes a document's content digest.
+5. **Stored, relayed and transformed documents.**
+   - **Recompute, never trust a stated digest.** A digest is valid for a
+     document only if it is recomputed from the document actually held.
+     A digest value stored or transmitted alongside a document MUST NOT be
+     accepted for that document without recomputation.
+   - **Stored or relayed unchanged.** A party that stores or relays a
+     document SHOULD retain and forward its original bytes. If it parses
+     and re-serializes the document instead, it MUST preserve the JSON data
+     model losslessly: every member, including unknown extension data, with
+     identical values. The content digest of the re-serialized document
+     then equals the original's. A party that cannot guarantee lossless
+     preservation, for example because its parser cannot represent a value
+     exactly, MUST forward the original bytes, or treat its output as a
+     transformation.
+   - **Byte equality is not promised.** Neither of the above promises
+     byte-for-byte equality after parsing and re-serialization. Only the
+     content digest over the canonical form is preserved.
+   - **Transformed.** Any change to the data model produces a new document
+     with a new content digest. This includes migration, redaction, and
+     adding or removing members or extensions. The new document MUST NOT
+     be presented with the original's digest, or with any endorsement made
+     over the original's bytes. It references the original by digest and
+     is attributed to the party that transformed it (D2.7).
+6. **No laundering of provenance.** A record produced by the runtime that
+   contains host-attested or observed evidence attests only that the
+   runtime recorded that evidence. It MUST NOT be presented as converting
+   that evidence into runtime-enforced fact (I4, I5). The same will apply
+   to any future signature (D4.7).
+7. **Reserved: future signatures.** v0.1 defines no signing, and no signing
+   infrastructure, keys or trust roots exist.
+   - No v0.1 document or implementation may claim that a document is
+     signed, authenticated or DSSE-conformant.
+   - When signing is introduced by a future ADR, the preferred direction is
+     the DSSE envelope. DSSE signs exact payload bytes together with a
+     payload type, through its pre-authentication encoding. The payload
+     would be the document's canonical form (D4.2), so that the signed
+     bytes and the content digest refer to the same bytes.
+   - Envelopes would be carried outside the documents they sign, so that
+     signing never changes a content digest.
    - Which parties sign which documents, key management, rotation,
      revocation and trust roots remain open (OQ-4 residual, OQ-5).
-6. **No laundering of provenance.** A signature by the runtime over a record
-   that contains host-attested or observed evidence attests only that the
-   runtime recorded it. It MUST NOT be presented as converting that evidence
-   into runtime-enforced fact (I4, I5).
 
 ### D5. Relationship to existing standards (OQ-23)
 
 Proof Runtime **reuses** a small set of established specifications
-normatively, **interoperates** with adjacent agent and observability
-protocols at defined boundaries, and **aligns** conceptually with
-provenance and attestation models without adopting their full data models
-in v0.1. The per-standard classification is in
+normatively, **reserves** one for future use, **interoperates** with
+adjacent agent and observability protocols at defined boundaries, and
+**aligns** conceptually with provenance models without adopting their full
+data models in v0.1. The per-standard classification is in
 [docs/protocols/standards-matrix.md](../protocols/standards-matrix.md).
 The binding rules are:
 
@@ -234,17 +305,18 @@ The binding rules are:
    - RFC 8259 (JSON), RFC 7493 (I-JSON), RFC 8785 (JCS),
    - JSON Schema 2020-12,
    - RFC 3339 (timestamps), RFC 4648 (base64url), RFC 3986 (URIs),
-   - DSSE as the designated future signing envelope,
    - the in-toto `DigestSet` shape.
-2. **Interoperability, not dependency.** MCP, A2A, CloudEvents,
+2. **Reserved for future use, not normative in v0.1:** DSSE, as the
+   preferred signing envelope (D4.7).
+3. **Interoperability, not dependency.** MCP, A2A, CloudEvents,
    OpenTelemetry, in-toto attestations, SLSA, OIDC and SPIFFE are treated as
    external protocols that adapters may map to or from. No core protocol
    requires any of them, and no core member's meaning depends on them.
-3. **No compliance claims.** Proof Runtime makes no claim of conformance,
+4. **No compliance claims.** Proof Runtime makes no claim of conformance,
    compatibility or certification with any external standard until a
    mapping is specified, implemented and tested against that standard's own
    conformance material.
-4. **External signals are not authority.** Metadata from external protocols
+5. **External signals are not authority.** Metadata from external protocols
    is treated as host-attested or tool-provided input, never as a CONTROL
    decision (I1, I4, I5). Examples are MCP tool annotations, A2A Agent Card
    capability declarations and telemetry attributes.
@@ -266,12 +338,13 @@ The binding rules are:
 - Documents become immutable, digest-addressed records. Corrections,
   migrations and redactions create new documents that reference earlier
   ones.
-- Fail-closed behavior on unknown majors and unknown critical extensions
+- Fail-closed behavior on unknown versions and unknown critical extensions
   means a newer producer can make an older consumer refuse a document. This
-  is intended: refusal is preferred to silent weakening.
-- Extension authors bear responsibility for marking criticality correctly.
-  An extension that relaxes controls without being marked critical violates
-  D3.5, and conformant consumers must not honor the relaxation.
+  is intended: refusal is preferred to silent divergence in either
+  direction.
+- Extension authors must classify their extensions correctly (D3.6). The
+  [conformance cases](../protocols/conformance-cases.md) are intended to
+  catch misclassification on the producer side.
 
 ## Preservation of ADR 0001
 
@@ -279,15 +352,15 @@ The binding rules are:
 | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | Four planes                                          | Unchanged. No plane component is added or redefined.                                                                                |
 | Four core protocols                                  | Unchanged. No protocol is added; no fields are defined.                                                                             |
-| I1 `MODEL != AUTHORITY`                              | Preserved: an Action IR document carries no authority; external metadata is never a CONTROL decision (D5.4).                        |
-| I2 `MODEL CLAIM != VERIFIED FACT`                    | Preserved: integrity and signatures are separated from correctness (D4.1).                                                         |
-| I3 `MEMORY != POLICY`                                | Preserved: nothing in a document's encoding, version or extensions grants authority by itself (D3.5).                              |
-| I4 `TOOL OUTPUT != TRUSTED FACT`                     | Preserved: hashing and signing do not upgrade provenance (D4.6, D5.4).                                                             |
-| I5 `HOST SUPPORT != ENFORCEMENT`                     | Preserved: external capability declarations are host-attested input (D5.4); runtime signatures do not launder provenance (D4.6). |
-| I6 `NO EVIDENCE -> NO VERIFIED COMPLETION`           | Preserved: unknown or unacceptable digests are unverifiable, never matching (D4.4); critical extensions fail closed (D3.4).        |
-| I7 `NO CAPABILITY -> NO EFFECTFUL ACTION`            | Preserved: an extension that relaxes controls must be critical, so it is refused rather than honored where not understood (D3.5).  |
-| I8 `PRIVILEGE EXPANSION -> EXTERNAL AUTHORIZATION`   | Preserved: the monotonic rules (D2.5, D3.5) prevent widening by version or extension skew.                                         |
-| I9 `HIGH-RISK ACTION -> POLICY / APPROVAL`           | Preserved: digest-addressed documents make it possible to bind an approval to exact bytes; whether approvals must do so is OQ-9.   |
+| I1 `MODEL != AUTHORITY`                              | Preserved: an Action IR document carries no authority; external metadata is never a CONTROL decision (D5.5).                        |
+| I2 `MODEL CLAIM != VERIFIED FACT`                    | Preserved: integrity is separated from correctness (D4.1).                                                                          |
+| I3 `MEMORY != POLICY`                                | Preserved: nothing in a document's encoding, version or extensions grants authority by itself (D3.3, D3.5).                        |
+| I4 `TOOL OUTPUT != TRUSTED FACT`                     | Preserved: digests and records do not upgrade provenance (D4.6, D5.5).                                                              |
+| I5 `HOST SUPPORT != ENFORCEMENT`                     | Preserved: external capability declarations are host-attested input (D5.5); runtime records do not launder provenance (D4.6).    |
+| I6 `NO EVIDENCE -> NO VERIFIED COMPLETION`           | Preserved: unknown or unacceptable digests are unverifiable, never matching (D4.4); stated digests are recomputed (D4.5).          |
+| I7 `NO CAPABILITY -> NO EFFECTFUL ACTION`            | Preserved: any extension affecting capability scope is critical and fails closed when not understood (D3.4, D3.5).                 |
+| I8 `PRIVILEGE EXPANSION -> EXTERNAL AUTHORIZATION`   | Preserved: no ignorable version or extension content may affect authorization (D2.5, D3.3).                                         |
+| I9 `HIGH-RISK ACTION -> POLICY / APPROVAL`           | Preserved: digest-addressed documents make it possible to bind an approval to exact content; whether approvals must do so is OQ-9. |
 | I10 `FAILED TRANSACTION -> ROLLBACK OR COMPENSATION` | Unaffected; transaction semantics remain OQ-11.                                                                                     |
 | Integration grades                                   | Preserved: no mechanism here creates an enforcement claim beyond the boundary the runtime controls.                                |
 
@@ -312,20 +385,27 @@ They do not modify ADR 0001.
   producer-asserted timestamps? If so, which ones?
 - **OQ-29 Home of CONTROL decision records.** Authorization must be a
   CONTROL-plane decision recorded separately from the Action IR proposal it
-  concerns (design constraint C6). Which existing artifact carries these
-  decision records? For example, they could be recorded as evidence within
-  Evidence Receipts, or kept as Audit records outside the four protocol
-  documents. This ADR does not decide the question, and it must not be
-  resolved by adding a fifth core protocol without a new ADR that amends
-  ADR 0001.
+  concerns (design constraint C6). How are these decision records
+  identified and carried, and how do later records reference them?
+  - The alternatives and their security implications are analyzed in
+    [foundations-analysis.md § OQ-29](../protocols/foundations-analysis.md#oq-29-open-control-decision-records).
+  - Whatever the outcome, design constraint C17 applies: a record that
+    describes a decision is never itself an authorization credential.
+  - This ADR does not select a design, and the question must not be
+    resolved by adding a fifth core protocol without a new ADR that amends
+    ADR 0001.
 
 The residual part of **OQ-4** stays open: which parties sign which documents,
 and how keys are managed, rotated and revoked. It depends on OQ-5.
 
 ## Verification status of cited standards
 
-The research for this ADR was done with restricted network access. Some
-primary sources were read directly; others could not be reached and are
-cited from prior knowledge. The standards matrix records the status of each
-citation. Claims marked "not verified in this review" must be checked
-against the primary source before this ADR is accepted.
+The research for this ADR was done with restricted network access.
+- Some primary sources were read directly.
+- Others are corroborated only by search-engine excerpts of the official
+  page.
+- A few are unverified.
+
+The standards matrix records the status and official link of each citation.
+Claims not verified from a primary source must be checked before this ADR
+is accepted.

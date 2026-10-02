@@ -15,7 +15,7 @@ These questions block **all four** protocols:
 | Question | State |
 |---|---|
 | OQ-1, OQ-2, OQ-3, OQ-23 | Resolutions proposed in ADR 0002 (D1, D2, D3, D5). Still blocking until ADR 0002 is accepted. |
-| OQ-4 | Canonicalization, digests and envelope choice proposed in ADR 0002 (D4). The signing residual (who signs, key management) does **not** block field-level specification, because signatures are carried outside documents (D4.5). It does block any claim of authenticity. |
+| OQ-4 | Canonicalization, digests and envelope choice proposed in ADR 0002 (D4). The signing residual (who signs, key management) does **not** block field-level specification, because signing is reserved and any future envelope would be carried outside documents (D4.7). It does block any claim of authenticity. |
 | OQ-26 Identifier namespace | Open. Every document type identifier needs it (D2.2). |
 | OQ-27 Resource limits | Open. Every protocol must state its limits (D1.4). |
 | OQ-5 Identity model | Open. Every protocol names actors: the principal of a task, the proposer of an action, the holder of a capability, the producer of a receipt. |
@@ -27,7 +27,7 @@ These come in addition to the shared foundations above.
 | Protocol | Plane | Additional blocking questions | Why |
 |---|---|---|---|
 | **Capability Manifest** | CONTROL | OQ-6, OQ-7, OQ-8, OQ-9, OQ-10 | Capability scope and delegation (OQ-7) and the definition of "effectful" (OQ-10) shape what a capability covers. Risk (OQ-8) and approval (OQ-9) determine when a capability alone is insufficient (I9). Policy binding (OQ-6) determines how declarations feed decisions. |
-| **Action IR** | EXECUTION | OQ-8, OQ-9, OQ-10, OQ-11, OQ-13, OQ-29 | An action must be classifiable for risk (OQ-8) and effect (OQ-10). It must be bindable to an approval (OQ-9) and to transaction boundaries (OQ-11). It must reference secrets without containing them (OQ-13, C12). How a CONTROL decision refers to it depends on OQ-29. |
+| **Action IR** | EXECUTION | OQ-8, OQ-9, OQ-10, OQ-11, OQ-13; OQ-29 (conditional) | An action must be classifiable for risk (OQ-8) and effect (OQ-10). It must be bindable to an approval (OQ-9) and to transaction boundaries (OQ-11). It must reference secrets without containing them (OQ-13, C12). OQ-29 blocks only an execution-bound form or any member that references decisions. The proposal form never references its own decision. See [analysis § OQ-29](foundations-analysis.md#which-protocols-oq-29-blocks). |
 | **Task Capsule** | STATE | OQ-13, OQ-14, OQ-15, OQ-16 | Portable state requires the lifecycle (OQ-14), the context/memory boundary (OQ-15), portability rules including change of grade (OQ-16), and secret-free state (OQ-13). |
 | **Evidence Receipt** | TRUST | OQ-13, OQ-17, OQ-18, OQ-19, OQ-20, OQ-21, OQ-28, OQ-29 | It needs the outcome vocabulary and evidence categories (OQ-17, C10), verifier trust (OQ-18), retention and redaction (OQ-19), audit integrity (OQ-20) and recording of the grade and boundary (OQ-21). It must be secret-free (OQ-13), and may need trusted time (OQ-28). It must reference decision records (OQ-29). |
 
@@ -35,7 +35,7 @@ These come in addition to the shared foundations above.
 
 | Question | Why it does not block |
 |---|---|
-| OQ-4 residual (signing) | Signatures are external to documents (D4.5). It blocks authenticity claims, not field design. |
+| OQ-4 residual (signing) | Signing is reserved, and any future envelope would be external to documents (D4.7). It blocks authenticity claims, not field design. |
 | OQ-12 Sandbox requirements | Needed to *implement* the Managed grade, not to define documents. |
 | OQ-22 Implementation language | Protocols are language-neutral. |
 | OQ-24 Copyright, OQ-25 Security contact | Project governance. |
@@ -68,7 +68,9 @@ does not make decision records a fifth protocol.
 ## Recommended specification order
 
 1. **Resolve the shared blockers:** accept ADR 0002, then decide OQ-26,
-   OQ-27, OQ-5 and OQ-29.
+   OQ-27 and OQ-5. OQ-29 must be decided before the Evidence Receipt and
+   before any execution-bound Action IR form. It does not block the
+   Capability Manifest, the Task Capsule or the Action IR proposal form.
 2. **Specify Capability Manifest and Action IR together.** They share OQ-8,
    OQ-9 and OQ-10, and their definitions must agree on what a capability
    covers and what an action can do.

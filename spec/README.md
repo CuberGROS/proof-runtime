@@ -64,7 +64,7 @@ dependency and suggests a specification order.
 | ------------------- | ------------------------------------------------------------ |
 | All                 | OQ-1, OQ-2, OQ-3, OQ-4, OQ-23 (proposed in ADR 0002); OQ-26, OQ-27 |
 | Task Capsule        | OQ-5, OQ-13, OQ-14, OQ-15, OQ-16                             |
-| Action IR           | OQ-5, OQ-8, OQ-9, OQ-10, OQ-11, OQ-13, OQ-29                 |
+| Action IR           | OQ-5, OQ-8, OQ-9, OQ-10, OQ-11, OQ-13; OQ-29 (conditional)   |
 | Capability Manifest | OQ-5, OQ-6, OQ-7, OQ-8, OQ-9, OQ-10                          |
 | Evidence Receipt    | OQ-5, OQ-13, OQ-17, OQ-18, OQ-19, OQ-20, OQ-21, OQ-28, OQ-29 |
 
