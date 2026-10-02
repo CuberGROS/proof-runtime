@@ -78,7 +78,7 @@ are listed in [Sources and verification](#sources-and-verification).
 |---|---|---|---|---|---|
 | **A. Project-controlled DNS domain** | `https://{domain}/...` | As long as the domain is renewed. A lapse lets a third party register the domain and mint look-alike identifiers. | Full, once registered. | Annual registration fee. Needs a registrant and renewal discipline. | The conventional choice for JSON Schema `$id` values, in-toto predicate types and A2A extension URIs. Humans can look up documentation. |
 | **B. w3id.org permanent identifier** | `https://w3id.org/{project}/...` | The service is run by a consortium of organizations, and identifiers are "intended to be around for as long as the Web is around" (w3id README). The redirect target can move if hosting changes. | Partial. The project controls the redirect target, through pull requests to `perma-id/w3id.org` that the service's maintainers review and merge. Administrators "may deny requests for identifiers that are too generic". | No fee. A pull request to a third-party repository. | Durable and free. But the URI authority belongs to a third party, so it does **not** meet R26.3, the control requirement stated in OQ-26. **Not a resolving option** under ADR 0003. Adopting it would need an explicit owner governance decision and a new ADR that changes that requirement. |
-| **C. `tag:` URI (RFC 4151)** | `tag:{domain-or-email},{YYYY-MM-DD}:...` | Very high. The date fixes ownership at minting time, so a later owner of the domain cannot mint the same tags. | Meets R26.3 when the tagging entity is a domain the project controls (or a role email address at such a domain) on the minting date, with evidence of that control kept (D6.8). A personal email address does not meet it, because the individual, not the project, controls it. | No registration. No resolution mechanism. | Best resistance to domain lapse, and naturally never fetched (R26.5). Unfamiliar to most implementers. Does not give humans a documentation link. |
+| **C. `tag:` URI (RFC 4151)** | `tag:{domain},{YYYY-MM-DD}:...` | Very high. The date fixes ownership at minting time, so a later owner of the domain cannot mint the same tags. | Meets R26.3 when the tagging entity is a DNS domain the project controls on the minting date, with evidence of that control kept (D6.8). RFC 4151 also allows an email address as the tagging entity. ADR 0003 does not use one: a personal address is controlled by an individual, and a role address would add a second spelling and a second control record for a domain the project must control anyway. | No registration. No resolution mechanism. | Best resistance to domain lapse, and naturally never fetched (R26.5). Unfamiliar to most implementers. Does not give humans a documentation link. |
 | **D. Formal URN namespace (RFC 8141)** | `urn:{nid}:...` | Very high once registered. | High, after registration. | IANA registration with expert review: slow, and heavy for a pre-alpha project. | Disproportionate now. Could be adopted later through a new ADR. |
 | **E. GitHub-hosted URL** | `https://github.com/CuberGROS/...` or `https://cubergros.github.io/...` | Tied to the account name and the repository's location. After a rename or transfer, the old name can be claimed by someone else. | GitHub controls the authority. The project controls only a path under an account name. | Free and immediate. | Fails R26.2 and R26.3. Not recommended for identifiers, though suitable for hosting human-readable documentation. |
 | **F. `urn:uuid:` (random)** | `urn:uuid:...` | Unique forever. | None. Anyone can mint any UUID, so ownership of a namespace cannot be expressed. | Free. | Cannot express a reserved core namespace (R26.3). Opaque to humans. Rejected for the core namespace. |
@@ -149,8 +149,14 @@ meets the control requirement as follows (D6.8):
   tagging entity at 00:00 UTC on the tag's date to mint tags under it. If
   that entity is a domain the project controls, the namespace belongs to
   the project from the minting date onward. A later registrant of a lapsed
-  domain is not entitled to mint tags with that date. A personal email
-  address would make the namespace the individual's, so it is excluded.
+  domain is not entitled to mint tags with that date.
+- **Domain only.** RFC 4151's `authorityName` is either a full DNS name or
+  a full email address, and the tag names exactly that entity. ADR 0003
+  allows only a DNS domain, so `{root}` always names the domain whose
+  control on the date is recorded. No requirement for an email tagging
+  entity has been shown. If one arises, the root would have to carry the
+  entire address, local part included, together with a record of control
+  of that address. That would need an amendment to D6.
 - **Evidence.** The project keeps a record of its control of the domain on
   that date, for example the registration record, so that ownership can be
   shown later.
@@ -228,7 +234,8 @@ published specification version may contain it.
 | N-06 | A published specification contains the `example.invalid` placeholder | Invalid publication under D6.7. |
 | N-07 | Under option C, a core identifier uses the year-only date form (`tag:{domain},2026:...`) or an uppercase domain | Invalid (producer-side) under D6.3. Consumers see an unknown type and reject. |
 | N-08 | `{root}` is recorded as a w3id.org URI without a new ADR changing the control requirement | Not a valid resolution of OQ-26 under D6.1. |
-| N-09 | Under option C, the tagging entity is a maintainer's personal email address | Not eligible under D6.8. |
+| N-09 | Under option C, the tagging entity is an email address, personal or role | Not eligible under D6.1 and D6.8. Only a DNS domain the project controls may be the tagging entity. |
+| N-10 | Under option C, `{root}` names a domain other than the one whose control on the minting date is recorded | Not a valid root under D6.8. The root must name the recorded tagging entity. |
 
 ### Residual risks
 
@@ -263,9 +270,16 @@ published specification version may contain it.
   carries no meaning, so a consumer cannot know a document's type or
   version until it has tokenized the whole document. At least one set of
   limits must therefore be independent of the protocol.
-- **R27.3 Streaming-checkable.** Every limit must be checkable in one pass
-  over the bytes, in memory bounded by the limits themselves, without
-  building a full in-memory tree first.
+- **R27.3 Streaming-checkable structure.** Every structural limit must be
+  checkable in one pass over the bytes, in memory bounded by the limits
+  themselves, without building a full in-memory tree first. Semantic limits
+  are checked afterwards, over a document the structural pass has already
+  bounded.
+- **R27.3a No guessing of roles.** ADR 0002 leaves member names and
+  positions to each protocol specification. A generic pass cannot know
+  which strings are identifiers or which objects are digest sets. It must
+  not guess: treating every string as an identifier would reject valid
+  documents, and skipping the check would leave the limit unenforced.
 - **R27.4 Same answer in every language.** Every conformant consumer, in
   any language, must accept or reject the same document. Every measure must
   therefore be defined exactly. In particular, string length cannot be left
@@ -367,28 +381,46 @@ applies.
 | 10 | Entries per digest set | **8** | One mandatory `sha256` plus room for algorithm agility, bounding hash work per reference (D4.4). |
 | 11 | Number-token length, in bytes | **17** (implied by D1.2) | Not a new limit. Stated so consumers can reject long tokens lexically before any conversion. |
 
-**Validation pipeline.** The proposed order of checks (D7.4):
+Row 1 is the byte ceiling. Rows 2, 3, 4, 6, 7, 8 and 11 are **structural**:
+they apply to every value of a JSON kind, whatever it means. Rows 5, 9 and
+10 are **semantic**: they apply only to values with a particular protocol
+role, which is known only once the document type is identified (D7.3).
 
-1. **Stage 0, transport.** Read at most ceiling + 1 bytes. If more are
-   available, reject without parsing.
-2. **Stage 1, single streaming pass.** Check the BOM, UTF-8 validity, the
-   D1.2 number rules, duplicate member names, and every ceiling in rows 2 to
-   11. Memory is bounded by depth plus the duplicate-name set of the open
-   objects, all of which are capped.
-3. **Stage 2, protocol limits.** Read the type identifier and protocol
-   version. Reject an unknown type, an unknown major version or an
-   unimplemented version (D2). Apply the protocol's own limits, which are
-   at most the ceiling. This can use a second pass or the tree from stage
-   1, because the ceiling already bounds its cost.
+**Validation stages.** The proposed order of checks (D7.4). Every stage
+fails closed: a failure rejects the document, records the reason and stops
+processing.
+
+1. **Stage 0, byte ceiling.** Read at most the size ceiling plus one byte.
+   If more is available, reject without parsing.
+2. **Stage 1, structural and lexical checks.** One streaming pass checks
+   the BOM, UTF-8 validity, the D1.2 number rules, duplicate member names
+   and the structural ceilings (rows 2, 3, 4, 6, 7, 8 and 11). It knows
+   nothing about member meanings and infers no protocol roles. Memory is
+   bounded by depth plus the duplicate-name sets of the open objects, all
+   of which are capped.
+3. **Stage 2, identification and semantic limits.** Locate the type
+   identifier and protocol version, as the implemented protocol
+   specifications define them. The set of implemented protocols is small
+   and fixed, so the search is bounded. Reject an unknown type, an unknown
+   major version or an unimplemented exact `0.x` version (D2). Then apply
+   the semantic ceilings (rows 5, 9 and 10) and the protocol's own limits.
+   This can use a second pass or the tree from Stage 1, because Stage 1
+   has already bounded its cost.
 4. **Stage 3, schema validation** against the declared version's
-   normative schema (D1.3).
-5. **Stage 4, semantic checks**, critical extensions, then canonicalization,
-   hashing and reference resolution.
+   normative schema, resolved offline (D1.3).
+5. **Stage 4, remaining semantic validation**, including critical
+   extensions. Only then canonicalization, hashing, reference resolution
+   and security-relevant processing.
 
-A non-streaming implementation conforms if it enforces stage 0 before
+A non-streaming implementation conforms if it enforces Stage 0 before
 parsing, configures its parser so that it cannot exhaust the stack within
-the ceiling, and completes stage 1 checks before stage 3. The size ceiling
-bounds its memory.
+the structural ceilings, and completes Stage 1 before Stage 2. The size
+ceiling bounds its memory.
+
+Locating the type identifier in Stage 2 depends on where the protocol
+specifications place it. ADR 0002 leaves that to them (D2.2). Placing it
+at the same top level in all four protocols would keep Stage 2 simple.
+That choice belongs to the protocol specifications, not to ADR 0003.
 
 **Limits and versions.** A protocol's limits are part of its major version.
 They change only with a new major version. Under D2.4, a minor version may
@@ -418,7 +450,7 @@ decision. Its only cost is availability.
 | # | Case | Expected result |
 |---|---|---|
 | L-01 | Document of exactly 1,048,576 bytes, otherwise valid | Passes the ceiling. Protocol limits apply next. |
-| L-02 | Document of 1,048,577 bytes | Reject at stage 0, without parsing. |
+| L-02 | Document of 1,048,577 bytes | Reject at Stage 0, without parsing. |
 | L-03 | Nesting depth exactly 32 (top-level object counts as 1) | Passes the ceiling. |
 | L-04 | Nesting depth 33, inside extension data | Reject. Extension data counts toward depth. |
 | L-05 | String whose decoded value is 21,845 three-byte UTF-8 characters plus one ASCII character (65,536 bytes), with some characters written as `\u` escapes in the source text | Passes. The measure is decoded UTF-8 bytes, not source bytes, code points or UTF-16 units. |
@@ -427,9 +459,13 @@ decision. Its only cost is availability.
 | L-08 | Object of 1,025 members with distinct names | Reject. |
 | L-09 | 100,001 values in total, each array and object within its own limits | Reject. |
 | L-10 | Number token of 18 characters, for example `-00000000000000001` | Already invalid under D1.2 (leading zeros). Rejected lexically, before any conversion. |
-| L-11 | Digest set with 9 entries | Reject. |
-| L-12 | Document within the ceiling but above its protocol's tighter limit | Reject at stage 2. |
+| L-11 | Digest set with 9 entries | Passes Stage 1, where it is just an object with 9 members. Rejected at Stage 2, once the document type identifies it as a digest set. |
+| L-12 | Document within the ceiling but above its protocol's tighter limit | Reject at Stage 2. |
 | L-13 | Consumer refuses a document within all limits under a local policy | Recorded as a local resource refusal, not as invalid. No partial processing. |
+| L-14 | A 3,000-byte string in a member that is not an identifier, for example a description | Passes. Stage 1 applies only the 65,536-byte string ceiling, and infers no identifier role. |
+| L-15 | An identity-reference subject of 2,049 bytes | Passes Stage 1. Rejected at Stage 2, once its role is known from the document type. |
+| L-16 | An extensions element with 65 members | Passes Stage 1 (within 1,024 members). Rejected at Stage 2 by the extensions ceiling. |
+| L-17 | A document whose type identifier is not implemented, and which also has a 9-entry digest set | Rejected at Stage 2 as an unknown type. Semantic ceilings are never applied to an unidentified document. |
 
 ### Residual risks
 
@@ -560,9 +596,14 @@ may hold several roles. Holding one role never implies another.
   makes the same point: assertions must be "qualified by the trust domain"
   (SPIFFE-ID §4.1.2, verified).
 - **Identifier reassignment.** If an issuer reassigns a subject, historical
-  records then name the wrong entity. Issuers relied on for principals must
-  guarantee non-reassignment. OIDC requires this of `sub`. Email addresses
-  do not guarantee it.
+  records then appear to name the new entity. Immutable records reference
+  every role: actors, agents (which are never principals under PC-2 option
+  P1), delegates, approvers and producers, not only principals. So every
+  issuer CONTROL trusts, for any role, must guarantee non-reassignment
+  (D8.3). OIDC requires this of `sub`. Email addresses do not guarantee
+  it. A record's reference denotes the entity assigned at the time of the
+  record. Self-asserted references carry no such assurance, and their
+  provenance says so.
 - **Recorded identity is not authentication.** An identity reference inside
   a receipt or decision record is the producer's statement. Treating it as
   authenticating anyone would turn records into credentials (by analogy
@@ -626,6 +667,31 @@ undercut the invariant. The owner may relax this only through OQ-9.
 | **P1. Never (proposed)** | Every agent proposal is a delegated action from a human or service principal. | Authority always traces to a non-model principal (I1). Every agent action carries a validated delegation (D8.8). |
 | **P2. For capabilities granted directly to the agent** | An agent may be its own principal, but only for capabilities an external principal granted to it under I8. | Supports long-running autonomous agents without a per-task principal. But the agent's authority then no longer traces to a principal at decision time, only to a past grant, which makes revocation and attribution weaker. |
 
+**Consequence of P1 for agent-held Capability Manifests.** A Capability
+Manifest may name an agent as its holder (D8.9). Under P1, the agent can
+never act directly, because it is never a principal. D8.9 considers a
+capability in only two cases:
+
+1. in a direct action, for its holder,
+2. in a delegated action, when the capability is the principal's and is
+   available through a validated delegation.
+
+The first case is unavailable to an agent. Under the second, a manifest
+naming the agent can be used only as part of a delegation that CONTROL
+validates under D8.8: the agent acts for a human or service principal, and
+the effective authority stays bounded by what that principal holds and
+what the delegation grants. The manifest by itself confers nothing (C7).
+
+This is consistent, but incomplete. D8 does not say whether a Capability
+Manifest naming an agent can itself be the representation of a delegation,
+or only a declaration that some separate delegation must back. That is
+delegation semantics, so it belongs to OQ-7. Until OQ-7 decides, an
+agent-held manifest is usable only where CONTROL can identify and validate
+the delegation behind it. This ADR makes no further policy choice here,
+and the gap is recorded in D8's unresolved dependencies. Under P2 the
+question does not arise in the same form, because an agent could use a
+capability granted directly to it as its own principal.
+
 ### Recommendation
 
 1. Adopt the distinctions above as normative vocabulary (D8.1).
@@ -633,7 +699,9 @@ undercut the invariant. The owner may relax this only through OQ-9.
    compared exactly as a pair, with both components ASCII and each at most
    2,048 bytes (D7, row 5) (D8.2).
 3. Establish trust in an issuer only through CONTROL's local configuration,
-   never through document content (D8.3).
+   never through document content. Trust only issuers that never reassign
+   subjects, for any role. A record's reference keeps its referent at the
+   time of the record (D8.3).
 4. Adopt **three entity kinds**: `human`, `service` and `agent` (K2). Kind
    comes from CONTROL's registration, never from self-assertion. Models
    and organizations are not kinds. Runtime, host, verifier and approver
@@ -712,7 +780,7 @@ undercut the invariant. The owner may relax this only through OQ-9.
 | ID-09 | **Direct self-representation.** Human H, authenticated by CONTROL, submits a proposal on H's own behalf | Valid. Actor and principal are both recorded, each with H's identity reference and provenance `authenticated`. No delegation is required. Holder checks match H directly. |
 | ID-10 | **Direct self-representation by an agent.** Agent G submits a proposal naming itself as principal | Under PC-2 option P1, denied: an agent is never a principal. Recorded with G as actor and the principal claim as self-asserted. |
 | ID-11 | **Delegated identity, validated.** Agent G, authenticated, submits on behalf of human P under a delegation CONTROL has validated | Evaluated on P's behalf. The record keeps G as actor, P as principal and a reference to the delegation. Authority is bounded by P's holdings and the delegation. G's own unrelated capabilities are not added. |
-| ID-12 | **Delegated identity, not validated.** Agent G claims to act on behalf of P, and CONTROL holds no validated delegation | Denied. G is recorded as actor. P is recorded as principal with provenance `self-asserted`. |
+| ID-12 | **Delegated identity, not validated; principal only claimed.** Agent G claims to act on behalf of P, P's identity appears only in the proposal, and CONTROL holds no validated delegation | Denied. G is recorded as actor. P is recorded as principal with the provenance CONTROL established for that claim, here `self-asserted`. The missing delegation is recorded as a separate reason for denial. |
 | ID-13 | **Impersonation.** A submitter authenticated as G names P as actor | The actor is recorded as G. The claim that P is the actor is recorded as self-asserted. The proposal is never evaluated as P's direct action. |
 | ID-14 | **Trusted-attested identity, allowed.** Host T is configured as a trusted attester for issuer I, and allowed to satisfy holder checks (PC-1, option β). T attests actor X directly to CONTROL. X holds a covering capability | Permit possible. The record states provenance `trusted-attested` and names T. Enforcement happens only if a controlled boundary receives the permit from CONTROL. |
 | ID-15 | **Trusted-attested identity, not allowed.** As ID-14, but T is not allowed to satisfy holder checks | Denied for lack of a covering capability (I7). Recorded with provenance `trusted-attested`. |
@@ -720,6 +788,11 @@ undercut the invariant. The owner may relax this only through OQ-9.
 | ID-17 | **Untrusted attester.** Host U, not configured as trusted, attests actor X | Self-asserted, with U noted as the source. Never supports a permit. |
 | ID-18 | **No provenance upgrade.** A decision was recorded with a self-asserted actor, and the same entity later authenticates | The earlier record is unchanged. A new evaluation produces a new decision record. |
 | ID-19 | **Trusted-attested approver.** An approval arrives from an approver whose identity is only trusted-attested | Does not satisfy the approval requirement (D8.9). |
+| ID-20 | **Delegation failure, principal independently authenticated.** CONTROL has authenticated P in the same interaction, but the delegation from P to agent G has expired | Denied. P is recorded with provenance `authenticated`, unchanged by the delegation failure. The expired delegation is recorded as a separate authorization failure. |
+| ID-21 | **Delegation failure, principal trusted-attested.** As ID-20, but P's identity came directly from a trusted attester, and no delegation exists | Denied. P is recorded as `trusted-attested`, neither upgraded nor downgraded. The missing delegation is recorded separately. |
+| ID-22 | **No principal identity.** Agent G submits a proposal naming no principal | Denied (G is never a principal under P1). The record states that no principal identity was established, and fabricates none. |
+| ID-23 | **Agent subject reassignment.** An issuer trusted for agent identities reassigns the subject of a retired agent to a new agent | The issuer does not meet D8.3. CONTROL stops trusting it for new decisions. Existing records still denote the retired agent and are not edited. |
+| ID-24 | **Agent-held manifest.** A Capability Manifest names agent G as holder, and G submits a proposal with no principal | Not usable as a direct action under P1. Usable only through a delegation CONTROL validates (D8.8, D8.9; delegation semantics in OQ-7). |
 
 ### Residual risks
 
@@ -961,7 +1034,7 @@ the newly cited sources should be added there.
 
 | Source | Used for | Verification |
 |---|---|---|
-| RFC 4151, `tag` URI scheme | OQ-26, option C | **Corroborated** (search excerpts): syntax `tag:` authorityName `,` date `:` specific, with `specific = *( pchar / "/" / "?" )`; dates in `YYYY`, `YYYY-MM` or `YYYY-MM-DD` form; the tagging entity must control the domain or email at 00:00 UTC on the date; no authoritative resolution mechanism. |
+| RFC 4151, `tag` URI scheme | OQ-26, option C | **Corroborated** (search excerpts): syntax `tag:` authorityName `,` date `:` specific, with `specific = *( pchar / "/" / "?" )`; dates in `YYYY`, `YYYY-MM` or `YYYY-MM-DD` form; `authorityName` is a DNS name or an email address; the tagging entity must control it at 00:00 UTC on the date; no authoritative resolution mechanism. |
 | RFC 8141, URNs | OQ-26, option D | **Unverified**: formal namespace registration with IANA. |
 | RFC 2606 and RFC 6761, reserved `.invalid` | OQ-26, placeholder | **Unverified** in this session. |
 | w3id.org README ([perma-id/w3id.org](https://github.com/perma-id/w3id.org)) | OQ-26, option B | **Verified (primary)**: consortium management, HTTPS-only, "intended to be around for as long as the Web is around", changes by pull request, administrators may deny generic names. |

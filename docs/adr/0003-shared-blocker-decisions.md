@@ -83,10 +83,11 @@ it:
    - **A (proposed):** an `https` URI under a DNS domain that the project
      controls. `{root}` is `https://{domain}/{base}`.
    - **C (alternative):** a `tag:` URI (RFC 4151) whose tagging entity is a
-     DNS domain the project controls, or a role email address at such a
-     domain, on the minting date. `{root}` is
-     `tag:{domain},{YYYY-MM-DD}:{base}`. It meets the control requirement
-     only under the conditions in D6.8.
+     DNS domain the project controls on the minting date. `{root}` is
+     `tag:{domain},{YYYY-MM-DD}:{base}`, where `{domain}` is the full DNS
+     name of that tagging entity. Email addresses are not used as tagging
+     entities. It meets the control requirement only under the conditions
+     in D6.8.
 
    **Owner decision required:** this ADR does not choose or register a
    domain, does not choose a minting date and does not fix `{root}`. The
@@ -98,8 +99,12 @@ it:
      under a third party's governance, so it does not meet the control
      requirement. Adopting it would need an explicit governance decision by
      the owner and a new ADR that changes that requirement.
-   - A GitHub-hosted URL, a `urn:uuid:` URI and a `tag:` URI under a
-     personal email address are excluded for the same reason.
+   - A GitHub-hosted URL and a `urn:uuid:` URI are excluded for the same
+     reason. So is a `tag:` URI whose tagging entity is an email address:
+     a personal address is controlled by an individual, and no requirement
+     has been shown for a role address, which would add a second spelling
+     and a second control record for a domain the project must control
+     anyway.
    - A formal URN namespace is not recommended now.
 
    Until the owner records the choice and `{root}` in this ADR, no core
@@ -116,10 +121,10 @@ it:
    - under option A, use the scheme `https` in lowercase, with a
      lowercase DNS host, and no user information, port, query, fragment or
      percent-encoding,
-   - under option C, use the scheme `tag` in lowercase, a lowercase DNS
-     name or role email address, the full `YYYY-MM-DD` date form (the
-     `YYYY` and `YYYY-MM` forms are not used), and no query, fragment or
-     percent-encoding,
+   - under option C, use the scheme `tag` in lowercase, the tagging
+     entity's full DNS name in lowercase as the authority name, the full
+     `YYYY-MM-DD` date form (the `YYYY` and `YYYY-MM` forms are not used),
+     and no query, fragment or percent-encoding,
    - have no empty path segments, no `.` or `..` segments and no trailing
      `/`. Under option C, path segments are the `/`-separated parts of the
      tag's specific part,
@@ -166,9 +171,10 @@ it:
    implementation release MUST NOT bundle it as a recognized identifier.
 8. **Conditions for option C.** A `tag:` root meets the control requirement
    only if all of the following hold:
-   - the tagging entity is a DNS domain the project controls, or a role
-     email address at such a domain. A personal email address is not
-     eligible, because the individual, not the project, controls it,
+   - the tagging entity is a DNS domain the project controls. Email
+     addresses are not eligible (D6.1),
+   - `{root}` names that exact domain, so the identifier identifies the
+     tagging entity whose historical control is recorded,
    - the project controlled that domain at 00:00 UTC on the date in
      `{root}` (RFC 4151), and evidence of that control, such as the
      registration record, is kept in the repository,
@@ -253,35 +259,57 @@ case OQ-26 remains open until D6.1 is completed.
    it.
 3. **Ceiling values.**
 
-   | Measure | Ceiling |
-   |---|---|
-   | Document size | 1,048,576 bytes |
-   | Nesting depth | 32 |
-   | String length (string values) | 65,536 bytes |
-   | Member-name length | 2,048 bytes |
-   | Identifier length (type, extension and schema identifiers; each identity-reference component, D8.2) | 2,048 bytes |
-   | Array length | 4,096 elements |
-   | Object size | 1,024 members |
-   | Total values | 100,000 |
-   | Extensions per document | 64 |
-   | Critical-list entries | 64 |
-   | Digest-set entries | 8 |
+   | Measure | Ceiling | Kind (D7.4) |
+   |---|---|---|
+   | Document size | 1,048,576 bytes | Byte ceiling (Stage 0) |
+   | Nesting depth | 32 | Structural (Stage 1) |
+   | String length (every string value) | 65,536 bytes | Structural (Stage 1) |
+   | Member-name length (every member name) | 2,048 bytes | Structural (Stage 1) |
+   | Array length | 4,096 elements | Structural (Stage 1) |
+   | Object size | 1,024 members | Structural (Stage 1) |
+   | Total values | 100,000 | Structural (Stage 1) |
+   | Identifier length (type, extension and schema identifiers; each identity-reference component, D8.2) | 2,048 bytes | Semantic (Stage 2) |
+   | Extensions per document | 64 | Semantic (Stage 2) |
+   | Critical-list entries | 64 | Semantic (Stage 2) |
+   | Digest-set entries | 8 | Semantic (Stage 2) |
+
+   A **structural** ceiling applies to every value of a JSON kind, whatever
+   its meaning. A **semantic** ceiling applies only to values with a
+   particular protocol role, which is known only once the document type is
+   identified.
 
    The D1.2 integer profile already limits a number token to 17 bytes.
    Consumers SHOULD reject a longer token lexically, before any conversion.
-4. **Order of checks.** Consumers MUST:
-   - read no more than the size ceiling plus one byte before rejecting an
-     oversized document, and MUST NOT parse a document that exceeds it,
-   - check every other ceiling, the D1.2 profile and duplicate member
-     names, before schema validation, canonicalization, digest
-     computation, reference resolution or any security-relevant use,
-   - check the declared protocol's own limits once its type and version
-     are known, and before schema validation.
+4. **Validation stages.** Consumers MUST process each document in the
+   following stages, in order. A failure at any stage rejects the document,
+   is recorded with its reason, and stops processing. No later stage, and
+   no security-relevant use, sees a rejected document.
+   - **Stage 0, byte ceiling.** Read no more than the document-size ceiling
+     plus one byte. A document that exceeds the ceiling MUST be rejected
+     without being parsed.
+   - **Stage 1, structural and lexical checks.** Check the D1.2 profile
+     (BOM, UTF-8, number tokens), duplicate member names, and every
+     structural ceiling in D7.3. These checks MUST NOT depend on the
+     meaning of any member, and MUST NOT infer protocol-specific roles for
+     values. Stage 1 is bounded by Stage 0 and by its own ceilings.
+   - **Stage 2, identification and semantic limits.** Locate the type
+     identifier and protocol version, as defined by the protocol
+     specifications the consumer implements. Reject a document whose type,
+     major version or exact `0.x` version is not implemented (D2). Then
+     enforce every semantic ceiling in D7.3 and every protocol-specific
+     limit of the declared version. Stage 2 operates only on a document
+     that Stage 1 has already bounded.
+   - **Stage 3, schema validation.** Validate against the normative schema
+     of the declared version, resolved offline (D1.3).
+   - **Stage 4, remaining semantic validation.** Perform every other
+     semantic check, including critical extensions (D3.4), before
+     canonicalization, digest computation, reference resolution or any
+     security-relevant use.
 
-   Consumers SHOULD check the ceiling in a single streaming pass. A
-   non-streaming implementation conforms only if it enforces the size
-   ceiling before parsing, and its parser cannot exhaust the stack on any
-   document within the ceiling.
+   Consumers SHOULD perform Stage 1 in a single streaming pass. A
+   non-streaming implementation conforms only if it enforces Stage 0 before
+   parsing, and its parser cannot exhaust the stack on any document within
+   the structural ceilings.
 5. **Limits and versions.** A protocol's limits are fixed for each major
    version. Changing them requires a new major version (D2.3); D2.4 permits
    no such change in a minor version. Raising the ceiling requires a new
@@ -316,7 +344,10 @@ justification for each row in
 
 **Security implications.**
 - Bounds memory, stack and CPU (quadratic checks, sorting, hashing) before
-  any trust is established.
+  any trust is established. Each stage is bounded by the stages before it.
+- Separating structural from semantic ceilings means no generic pass has
+  to guess which strings are identifiers or which objects are digest sets.
+  Guessing would either reject valid documents or miss limits.
 - Removes parser differentials by fixing byte-based measures.
 - Bounds log amplification.
 - Limits only ever cause rejection, so they cannot weaken an authorization
@@ -369,8 +400,18 @@ when the owner:
      exact comparison (D1.2). No case folding or other normalization is
      applied.
 3. **Issuers.**
-   - An issuer relied on for principals MUST NOT reassign a subject to a
-     different entity.
+   - Every issuer whose identities CONTROL uses as authenticated or
+     trusted-attested, in any role, MUST NOT reassign a subject to a
+     different entity. This covers actors, agents, delegates, principals,
+     approvers, producers and every other role. CONTROL MUST NOT trust an
+     issuer for any role unless the issuer meets this requirement.
+   - An identity reference in a record denotes the entity to which its
+     issuer had assigned it when the record was made. A later reassignment
+     by the issuer never changes the referent of an existing record. If an
+     issuer is found to have reassigned a subject, CONTROL MUST stop
+     trusting it for new decisions. Existing records are not edited (D2.7).
+   - A self-asserted identity may name any issuer. Its record states that
+     provenance (D8.5), and it carries no assurance of a stable referent.
    - Which issuers are trusted, and for which entities, is CONTROL
      configuration. It MUST NOT be established by the content of any
      protocol document.
@@ -451,8 +492,20 @@ when the owner:
      - the principal's identity reference,
      - a reference to the validated delegation.
 
-     Without a validated delegation, the principal attribution is
-     self-asserted, and CONTROL denies the proposal.
+     When a principal's identity is established by a validated delegation,
+     how its provenance is established is part of OQ-7.
+   - **Delegation failure.** If the delegation is missing, invalid,
+     expired, revoked or does not cover this actor, CONTROL MUST deny the
+     proposal. In that case:
+     - the principal's identity reference and provenance are recorded
+       exactly as CONTROL established them under D8.5, independently of the
+       delegation. Whatever that provenance is (authenticated,
+       trusted-attested or self-asserted), the delegation outcome MUST NOT
+       upgrade or downgrade it,
+     - the delegation failure is recorded as a separate authorization
+       failure and as the reason for denial,
+     - CONTROL MUST NOT fabricate a principal identity. If no principal
+       identity was established, the record says so (D9.3).
    - **No impersonation.** An actor MUST NOT be recorded or accepted under
      another entity's identity reference. "Actor equals principal" is valid
      only when the actor established under D8.5 is that principal.
@@ -572,7 +625,11 @@ identities are all that is available.
 **Unresolved dependencies.**
 - OQ-4 residual: key binding.
 - OQ-6: how policy refers to identities.
-- OQ-7: delegation.
+- OQ-7: delegation. Under the proposed rule that agents are never
+  principals (D8.8), a Capability Manifest that names an agent as holder
+  is usable only through a delegation validated under D8.8. Whether such a
+  manifest can itself express that delegation is left to OQ-7. See
+  [analysis § PC-2](../protocols/shared-blockers-analysis.md#pc-2-may-an-agent-be-a-principal).
 - OQ-9: approver eligibility beyond D8.7.
 - OQ-18: agents as verifiers.
 - OQ-19: retention and redaction.
@@ -582,6 +639,8 @@ identities are all that is available.
 when the owner confirms:
 - the concept distinctions (D8.1),
 - the `(issuer, subject)` form (D8.2),
+- that every trusted issuer, for every role, never reassigns subjects
+  (D8.3),
 - the three kinds, including that models and organizations are not kinds
   (D8.4),
 - the provenance categories and the no-upgrade rule (D8.5),
@@ -617,6 +676,8 @@ when the owner confirms:
    - MUST record the actor and principal attributions (D8.8) as the
      identity references CONTROL used, each with its D8.5 provenance. For
      a delegated action, it MUST also reference the validated delegation,
+     or record the delegation failure as a separate reason for denial
+     without changing the principal's provenance (D8.8),
    - MUST state explicitly when no identity is available for either role,
      and MUST NOT substitute another identity,
    - MUST identify its producer.
