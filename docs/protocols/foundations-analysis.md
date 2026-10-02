@@ -1,6 +1,6 @@
 # Shared Protocol Foundations: Analysis and Recommendations
 
-> **Status: Proposed**, supporting
+> **Status: Accepted**, supporting
 > [ADR 0002](../adr/0002-shared-protocol-foundations.md). This document
 > explains the reasoning behind the decisions. The decisions themselves
 > (D1 to D5) are stated only in the ADR. If the two disagree, the ADR

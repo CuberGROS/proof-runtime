@@ -13,6 +13,7 @@ authoritative for each topic.
 | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `ARCHITECTURE.md` (this file)                                                | Canonical entry point and summary of the architecture boundaries                              |
 | [docs/adr/0001-architecture-freeze.md](docs/adr/0001-architecture-freeze.md) | Decision record (Accepted): what is frozen, terms identified for review, open questions       |
+| [docs/adr/0002-shared-protocol-foundations.md](docs/adr/0002-shared-protocol-foundations.md) | Decision record (Accepted): shared protocol foundations (encoding, versioning, extensions, integrity, standards) |
 | [docs/invariants.md](docs/invariants.md)                                     | Detailed specification of the invariants: wording, meaning and enforcement scope             |
 | [docs/architecture/overview.md](docs/architecture/overview.md)               | Explanatory narrative: plane responsibilities, action lifecycle, integration grades, diagrams |
 | [spec/README.md](spec/README.md)                                             | Protocol requirements and the questions that block their specification                        |

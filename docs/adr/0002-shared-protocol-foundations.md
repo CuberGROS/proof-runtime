@@ -1,16 +1,27 @@
 # ADR 0002: Shared Protocol Foundations
 
-- **Status:** Proposed (pending review by the repository owner)
+- **Status:** Accepted
 - **Date:** 2026-10-02
+- **Accepted:** 2026-10-02, by the repository owner and maintainer
+  (@CuberGROS)
 - **Phase:** 1A — protocol foundations
-- **Proposes resolutions for:** OQ-1, OQ-2, OQ-3, OQ-4 (partially) and OQ-23
+- **Resolves:** OQ-1, OQ-2, OQ-3 and OQ-23, and OQ-4 except its residual,
   from [ADR 0001](0001-architecture-freeze.md#open-questions)
 - **Does not change:** ADR 0001, the four planes, the four core protocols,
   the ten invariants or the three integration grades
 
-This ADR stays **Proposed** until the repository owner explicitly accepts
-it. Until then, OQ-1, OQ-2, OQ-3, OQ-4 and OQ-23 remain open, and field-level
-specification of any protocol stays blocked.
+This ADR was proposed and reviewed in pull request #2. The repository owner
+and maintainer explicitly accepted it, and that acceptance is recorded in
+this change.
+
+- **Resolved by this ADR:** OQ-1, OQ-2, OQ-3 and OQ-23. OQ-4 is resolved
+  except its residual: which signing envelope, which parties sign, and key
+  management.
+- **Still open:** the OQ-4 residual, and OQ-26 to OQ-29, which this ADR
+  raises.
+- **Record-keeping:** ADR 0001's open-question list is unchanged; this ADR
+  records the resolutions.
+- **Changes:** changing any decision below requires a new ADR.
 
 The key words "MUST", "MUST NOT", "SHOULD", "SHOULD NOT" and "MAY" in the
 Decision section are to be interpreted as described in BCP 14 (RFC 2119 and
@@ -35,7 +46,7 @@ Supporting documents:
   cross-protocol constraints these decisions must satisfy.
 - [Standards matrix](../protocols/standards-matrix.md): the standards
   evaluation, with the verification status of each citation.
-- [Conformance cases](../protocols/conformance-cases.md): proposed test
+- [Conformance cases](../protocols/conformance-cases.md): test
   cases for the extension, version and integrity rules.
 
 ## Decision
@@ -427,9 +438,12 @@ The binding rules are:
 
 ## Consequences
 
-- Protocol specifications can begin once this ADR is accepted, subject to
-  the protocol-specific open questions listed in
-  [docs/protocols/dependency-map.md](../protocols/dependency-map.md).
+- The shared foundations are settled. Field-level protocol specification
+  still requires two things:
+  - resolution of the open questions listed in
+    [docs/protocols/dependency-map.md](../protocols/dependency-map.md),
+    including OQ-26 and OQ-27, which block every protocol,
+  - explicit authorization of the next phase.
 - Every implementation needs:
   - a strict JSON parser that detects duplicate names,
   - a JCS implementation,

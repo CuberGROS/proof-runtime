@@ -1,6 +1,6 @@
 # Protocol Specification Dependency Map
 
-> **Status: Proposed**, as part of
+> **Status: Accepted**, as part of
 > [ADR 0002](../adr/0002-shared-protocol-foundations.md). It shows which
 > open questions must be resolved before each core protocol can be
 > specified at field level. OQ-1 to OQ-25 are defined in
@@ -14,8 +14,8 @@ These questions block **all four** protocols:
 
 | Question | State |
 |---|---|
-| OQ-1, OQ-2, OQ-3, OQ-23 | Resolutions proposed in ADR 0002 (D1, D2, D3, D5). Still blocking until ADR 0002 is accepted. |
-| OQ-4 | Canonicalization, digests and digest matching proposed in ADR 0002 (D4.1 to D4.6). The signing residual (which envelope, with DSSE the preferred candidate; who signs; key management) stays **open**. It does **not** block field-level specification, because signing is reserved and any future envelope would be carried outside documents (D4.7). It does block any claim of authenticity. |
+| OQ-1, OQ-2, OQ-3, OQ-23 | Resolved by ADR 0002 (D1, D2, D3, D5), accepted 2026-10-02. No longer blocking. |
+| OQ-4 | Canonicalization, digests and digest matching resolved by ADR 0002 (D4.1 to D4.6). The signing residual (which envelope, with DSSE the preferred candidate; who signs; key management) stays **open**. It does **not** block field-level specification, because signing is reserved and any future envelope would be carried outside documents (D4.7). It does block any claim of authenticity. |
 | OQ-26 Identifier namespace | Open. Every document type identifier needs it (D2.2). |
 | OQ-27 Resource limits | Open. Every protocol must state its limits (D1.4). |
 | OQ-5 Identity model | Open. Every protocol names actors: the principal of a task, the proposer of an action, the holder of a capability, the producer of a receipt. |
@@ -67,7 +67,7 @@ does not make decision records a fifth protocol.
 
 ## Recommended specification order
 
-1. **Resolve the shared blockers:** accept ADR 0002, then decide OQ-26,
+1. **Resolve the shared blockers.** ADR 0002 is accepted. Decide OQ-26,
    OQ-27 and OQ-5. OQ-29 must be decided before the Evidence Receipt and
    before any execution-bound Action IR form. It does not block the
    Capability Manifest, the Task Capsule or the Action IR proposal form.

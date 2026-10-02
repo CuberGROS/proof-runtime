@@ -1,10 +1,11 @@
-# Proposed Conformance Cases: Shared Foundations
+# Conformance Cases: Shared Foundations
 
-> **Status: Proposed**, as part of
-> [ADR 0002](../adr/0002-shared-protocol-foundations.md). These are prose
-> test-case descriptions for the shared structure, extension, version and
-> integrity rules. A case marked "Optional (MAY)" describes permitted
-> behavior, not a mandatory acceptance test. They are not test vectors, schemas or code. Concrete vectors can
+> **Status: Accepted**, as part of
+> [ADR 0002](../adr/0002-shared-protocol-foundations.md) (accepted
+> 2026-10-02). These are prose test-case descriptions for the shared
+> structure, extension, version and integrity rules. A case marked
+> "Optional (MAY)" describes permitted behavior, not a mandatory acceptance
+> test. They are not test vectors, schemas or code. Concrete vectors can
 > only be written once protocol fields exist, so they belong to the
 > protocol specifications.
 

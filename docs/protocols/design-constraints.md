@@ -1,8 +1,8 @@
 # Shared Protocol Design Constraints
 
-> **Status: Proposed**, as part of
-> [ADR 0002](../adr/0002-shared-protocol-foundations.md). These constraints
-> bind all four core protocols once ADR 0002 is accepted. They restate no
+> **Status: Accepted**, as part of
+> [ADR 0002](../adr/0002-shared-protocol-foundations.md) (accepted
+> 2026-10-02). These constraints bind all four core protocols. They restate no
 > field definitions; none exist yet.
 
 Each constraint applies to Task Capsule, Action IR, Capability Manifest and

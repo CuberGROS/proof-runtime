@@ -1,6 +1,6 @@
 # Standards Compatibility and Reuse Matrix
 
-> **Status: Proposed**, as part of
+> **Status: Accepted**, as part of
 > [ADR 0002](../adr/0002-shared-protocol-foundations.md). It answers OQ-23 for
 > v0.1. Nothing here claims conformance or compatibility with any standard;
 > see [ADR 0002 § D5](../adr/0002-shared-protocol-foundations.md#d5-relationship-to-existing-standards-oq-23).
