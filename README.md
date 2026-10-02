@@ -65,10 +65,11 @@ boundary it actually controls. See
 
 ## Decision status
 
-The architecture boundaries are proposed for freeze in
-[ADR 0001](docs/adr/0001-architecture-freeze.md). Its status is
-**Proposed**: the boundaries become frozen only after a maintainer
-explicitly accepts it.
+The architecture boundaries are frozen by
+[ADR 0001](docs/adr/0001-architecture-freeze.md) (status: **Accepted**).
+Changing them requires a new ADR. Freezing the boundaries does not resolve
+the open architectural questions, and the project remains pre-alpha with no
+implementation.
 
 ## Repository layout
 

@@ -4,7 +4,7 @@
 > boundaries only. Nothing described here is implemented yet.
 
 This file is the **canonical entry point** to the Proof Runtime architecture.
-It summarizes the proposed boundaries and identifies which document is
+It summarizes the frozen boundaries and identifies which document is
 authoritative for each topic.
 
 ## Document roles
@@ -12,7 +12,7 @@ authoritative for each topic.
 | Document                                                                     | Role                                                                                          |
 | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `ARCHITECTURE.md` (this file)                                                | Canonical entry point and summary of the architecture boundaries                              |
-| [docs/adr/0001-architecture-freeze.md](docs/adr/0001-architecture-freeze.md) | Decision record: what is proposed for freeze, terms under review, open questions              |
+| [docs/adr/0001-architecture-freeze.md](docs/adr/0001-architecture-freeze.md) | Decision record (Accepted): what is frozen, terms identified for review, open questions       |
 | [docs/invariants.md](docs/invariants.md)                                     | Detailed specification of the invariants: wording, meaning and enforcement scope             |
 | [docs/architecture/overview.md](docs/architecture/overview.md)               | Explanatory narrative: plane responsibilities, action lifecycle, integration grades, diagrams |
 | [spec/README.md](spec/README.md)                                             | Protocol requirements and the questions that block their specification                        |
@@ -24,14 +24,11 @@ for review. Until the defect is fixed, ADR 0001 governs what is decided, and
 
 ## Decision status
 
-The boundaries below are **proposed for freeze** in
-[ADR 0001](docs/adr/0001-architecture-freeze.md), whose status is
-**Proposed**. They become frozen only when a maintainer explicitly accepts
-the ADR.
-
-- **While the ADR is Proposed:** changes go through review as amendments to
-  ADR 0001.
-- **After acceptance:** changes require a new ADR.
+The boundaries below are **frozen** by
+[ADR 0001](docs/adr/0001-architecture-freeze.md), which the repository owner
+accepted on 2026-10-02. Changing them requires a new ADR. The open questions
+in ADR 0001 remain unresolved. Each will be settled by its own ADR or
+specification decision, within these boundaries.
 
 ## Four planes
 

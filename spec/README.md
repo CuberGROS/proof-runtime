@@ -7,8 +7,8 @@
 > authorized.
 
 Proof Runtime defines four core protocols. Their existence and purpose are
-proposed for freeze in [ADR 0001](../docs/adr/0001-architecture-freeze.md),
-whose status is **Proposed**. Their contents are not yet defined.
+frozen by [ADR 0001](../docs/adr/0001-architecture-freeze.md) (status:
+**Accepted**). Their contents are not yet defined.
 
 ## The four core protocols
 

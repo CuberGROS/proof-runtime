@@ -1,10 +1,9 @@
 # Invariants
 
-> **Status: proposed for freeze in [ADR 0001](adr/0001-architecture-freeze.md)
-> (status: Proposed).** This document is the detailed specification of the
-> invariants, and ADR 0001 records the decision to adopt them. They become
-> frozen only when a maintainer explicitly accepts ADR 0001. After that,
-> changing, removing or weakening an invariant requires a new ADR.
+> **Status: frozen by [ADR 0001](adr/0001-architecture-freeze.md) (status:
+> Accepted).** This document is the detailed specification of the
+> invariants, and ADR 0001 records the decision to adopt them. Changing,
+> removing or weakening an invariant requires a new ADR.
 
 These invariants are non-negotiable design constraints. Every protocol,
 component and integration must preserve them. Where an implementation cannot

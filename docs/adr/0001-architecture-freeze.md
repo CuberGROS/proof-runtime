@@ -1,12 +1,14 @@
 # ADR 0001: Architecture Freeze for v0.1 Foundation
 
-- **Status:** Proposed (pending review)
+- **Status:** Accepted
 - **Date:** 2026-10-02
+- **Accepted:** 2026-10-02, by the repository owner and maintainer
+  (@CuberGROS)
 - **Phase:** 0 — repository foundation and architecture documentation
 
-This ADR stays **Proposed** until a maintainer explicitly accepts it. The
-status change will be made in a separate change that records that
-acceptance.
+This ADR was proposed and reviewed in pull request #1. The repository owner
+and maintainer explicitly accepted it, and that acceptance is recorded in
+this change.
 
 ## Context
 
@@ -22,12 +24,8 @@ host, programming language and industry.
 
 ## Decision
 
-This ADR proposes freezing the following for the v0.1 foundation.
-
-- **While this ADR is Proposed:** the items below may be revised in review by
-  amending this ADR.
-- **Once it is accepted:** any change requires a new ADR that supersedes the
-  relevant part of this one.
+The following are frozen for the v0.1 foundation. Any change to them requires
+a new ADR that supersedes the relevant part of this one.
 
 ### 1. Four planes
 
@@ -71,8 +69,7 @@ not mean formal correctness proofs for arbitrary AI outputs.
 ## Consequences
 
 - Later specification work must fit within the four planes and four
-  protocols. If it cannot, it requires an amendment to this ADR while it is
-  Proposed, or a new ADR after acceptance.
+  protocols. If it cannot, it requires a new ADR.
 - Documentation and future code must state the enforcement boundary of any
   guarantee they describe.
 - Several fundamental technical decisions remain open (below). Each must be
@@ -83,11 +80,10 @@ not mean formal correctness proofs for arbitrary AI outputs.
 ## Terms identified for review
 
 The documentation uses the following terms to describe the architecture.
-They are **not** among the plane components, protocols or invariants
-proposed for freeze above, and this
-ADR does not promote them to architectural primitives. They are listed here
-with working definitions so reviewers can decide whether any should become
-explicit primitives, be renamed, or stay purely descriptive.
+They are **not** among the plane components, protocols or invariants frozen
+above, and this ADR does not promote them to architectural primitives. They
+are listed here with working definitions. Promoting any of them to an
+explicit primitive, or renaming one, requires a new ADR.
 
 | Term                   | Working definition                                                                                    | Where used                            | Related                    |
 | ---------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------- | -------------------------- |

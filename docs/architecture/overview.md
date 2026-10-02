@@ -7,7 +7,7 @@
 > This is an explanatory document. The authoritative sources are
 > [ARCHITECTURE.md](../../ARCHITECTURE.md) (entry point),
 > [ADR 0001](../adr/0001-architecture-freeze.md) (decision record, status:
-> Proposed) and [docs/invariants.md](../invariants.md) (invariants).
+> Accepted) and [docs/invariants.md](../invariants.md) (invariants).
 > Unresolved decisions are listed in
 > [ADR 0001 § Open questions](../adr/0001-architecture-freeze.md#open-questions).
 
