@@ -64,24 +64,33 @@ position and exact syntax are left to the protocol specifications.
      documents that contain them, rather than applying "last one wins".
    - Producers MUST NOT emit a byte order mark. Consumers MUST reject
      documents that start with one.
-   - **Numbers, whole document.** These rules apply to every JSON number
-     anywhere in a document, including nested extension data. They follow
-     the JCS input requirements (RFC 8785 §3.1; see the standards matrix for
-     verification status).
-     - Every number MUST parse to a finite IEEE 754 double-precision value.
-       A number that overflows, such as `1e400`, makes the document invalid.
-     - A number written without a fraction or exponent (an integer) MUST
-       lie in the range −(2^53 − 1) to 2^53 − 1, so that it is represented
-       exactly.
-     - Consumers MUST reject a document containing a number that violates
-       either rule.
-     - A quantity that needs exact precision, such as an exact decimal,
-       a large integer or a monetary amount, MUST be encoded as a string,
-       in any member, core or extension. Its format is defined by the
-       specification that owns the member.
-   - **Numbers, core members.** Core members (members defined by a protocol
-     specification, not by an extension) are stricter still: they MUST NOT
-     use non-integer JSON numbers at all.
+   - **Numbers: one strict integer profile for the whole document.** In
+     v0.1, every JSON number token anywhere in a document, core or
+     extension at any nesting depth, MUST satisfy all of the following:
+     - **Integer spelling only.** The token consists of an optional minus
+       sign followed by `0` or by a nonzero digit and further digits. It
+       contains no fraction part and no exponent part. Integral values
+       written as `1.0`, `1e0` or `9.007199254740993e15` are therefore
+       invalid.
+     - **No negative zero.** The token `-0` is invalid.
+     - **Safe range.** The value lies in the range −(2^53 − 1) to
+       2^53 − 1 (−9007199254740991 to 9007199254740991).
+     - **Lexical validation first.** Consumers MUST check these rules on
+       the token text itself, before any conversion to binary64 or any
+       other lossy representation. A parser that rounds first cannot
+       detect an out-of-range value such as `9007199254740993`.
+
+     Consumers MUST reject a document containing any number token that
+     violates these rules. Fractions, monetary amounts, integers outside
+     the safe range and any other quantity that needs exact precision MUST
+     be encoded as strings, in a format defined by the specification that
+     owns the member.
+
+     This profile is intentionally stricter than JCS (RFC 8785), which
+     accepts any number representable as an IEEE 754 double. Every
+     conforming number therefore has exactly one textual form and one exact
+     value in every language, and JCS serializes it as its plain decimal
+     integer spelling.
    - **Absence.** A core member that has no value is omitted. `null` is not
      used to mean "absent" in core members.
    - **Timestamps** use RFC 3339 with an explicit `Z` (UTC) offset. A
@@ -158,14 +167,17 @@ position and exact syntax are left to the protocol specifications.
    the change would make decisions stricter or more permissive. Ignoring a
    new restriction is as much a divergence from the producer's intent as
    ignoring a new permission.
-6. **Pre-1.0 versions.** Protocol versions `0.x` carry no general
-   compatibility promise between minor versions.
+6. **Pre-1.0 versions: exact match only.** Protocol versions `0.x` carry no
+   compatibility between minor versions, and none may be declared.
    - A consumer MUST reject a `0.x` document whose exact `MAJOR.MINOR` it
-     does not implement.
-   - The only exception is a protocol specification that explicitly
-     declares two specific `0.x` minor versions compatible; then a consumer
-     MAY accept the declared pair.
-   - D2.4 applies only from `1.0`.
+     has not explicitly implemented. A consumer may implement several
+     `0.x` versions, but each one must be implemented individually.
+   - A protocol specification MUST NOT declare two `0.x` minor versions
+     compatible. No such compatibility is implied by version numbering.
+   - D2.4 applies only from `1.0`. Before `1.0`, there is therefore no path
+     by which a consumer accepts a document version it does not implement,
+     and so no path for silently ignoring content added in a newer `0.x`
+     minor version.
 7. **Immutability and migration.** A document identified by a content
    digest (D4) is never edited in place.
    - **Immutable while retained, not retained forever.** Immutability
@@ -292,7 +304,7 @@ direction for future work and imposes no v0.1 requirement.
    execution happened as described.
 2. **Canonical form.** The canonical form of a protocol document is its
    JSON Canonicalization Scheme (JCS, RFC 8785) serialization. The D1
-   profile, in particular integer-only core numbers and ASCII identifiers,
+   profile, in particular its integer-only numbers and ASCII identifiers,
    exists partly to keep JCS output identical across languages.
 3. **Content digest.** A document's content digest is computed over its
    canonical form. Opaque artifacts (logs, files, binaries) are digested
@@ -446,7 +458,7 @@ The binding rules are:
 | I3 `MEMORY != POLICY`                                | Preserved: nothing in a document's encoding, version or extensions grants authority by itself (D3.3, D3.5).                        |
 | I4 `TOOL OUTPUT != TRUSTED FACT`                     | Preserved: digests and records do not upgrade provenance (D4.6, D5.5).                                                              |
 | I5 `HOST SUPPORT != ENFORCEMENT`                     | Preserved: external capability declarations are host-attested input (D5.5); runtime records do not launder provenance (D4.6).    |
-| I6 `NO EVIDENCE -> NO VERIFIED COMPLETION`           | Preserved: unknown or unacceptable digests are unverifiable, never matching (D4.4); stated digests are recomputed (D4.5).          |
+| I6 `NO EVIDENCE -> NO VERIFIED COMPLETION`           | Preserved: references without `sha256` are invalid and mismatching digests never match (D4.4); unavailable targets are never verified (D2.7); stated digests are recomputed (D4.5).          |
 | I7 `NO CAPABILITY -> NO EFFECTFUL ACTION`            | Preserved: any extension affecting capability scope is critical and fails closed when not understood (D3.4, D3.5).                 |
 | I8 `PRIVILEGE EXPANSION -> EXTERNAL AUTHORIZATION`   | Preserved: no ignorable version or extension content may affect authorization (D2.5, D3.3).                                         |
 | I9 `HIGH-RISK ACTION -> POLICY / APPROVAL`           | Preserved: digest-addressed documents make it possible to bind an approval to exact content; whether approvals must do so is OQ-9. |
@@ -490,12 +502,15 @@ how keys are managed, rotated and revoked. It depends on OQ-5.
 
 ## Verification status of cited standards
 
-The research for this ADR was done with restricted network access.
-- Some primary sources were read directly.
-- Others are corroborated only by search-engine excerpts of the official
-  page.
-- A few are unverified.
+The Claude session that drafted this ADR ran with restricted network
+access. Some primary sources were read directly in that session.
 
-The standards matrix records the status and official link of each citation.
-Claims not verified from a primary source must be checked before this ADR
-is accepted.
+For RFC 8259, 7493, 8785, 7515, 3339, 4648 and 3986, JSON Schema 2020-12,
+W3C PROV-DM, SLSA v1.2, OpenID Connect Core and FIPS 180-4, the repository
+owner reported on 2026-10-02 that an independent review accessed the
+official sources. The drafting session itself could not access them.
+
+The [standards matrix](../protocols/standards-matrix.md) records the
+official link and verification basis of each citation, and the items that
+remain. No verification implies implementation conformance with any
+standard (D5.4).

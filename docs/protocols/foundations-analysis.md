@@ -65,20 +65,30 @@ transcoding.
 - **Duplicate keys.** Duplicate-key acceptance can make two components see
   different documents (a parser-differential attack). D1 therefore requires
   rejection rather than relying on default parser behavior.
-- **Numbers throughout the document.** Every document must have a JCS
-  canonical form (D4.2), and JCS requires its input numbers to be
-  representable as IEEE 754 doubles (RFC 8785 §3.1; not verified from the
-  primary text in this review). A rule that covered only core members would
-  let extension data carry a value such as `1e400`, or an integer beyond
-  2^53, that cannot be canonicalized faithfully. Such a document could not
-  be digest-addressed conformantly. D1.2 therefore applies three rules to
-  the whole document:
-  - every number must be a finite double,
-  - integers must lie within ±(2^53 − 1),
-  - exact-precision quantities must be strings.
+- **Numbers: one strict integer profile, checked lexically.** Every
+  document must have a JCS canonical form (D4.2), and JCS requires input
+  numbers to be representable as IEEE 754 doubles (RFC 8785 §3.1). Two
+  earlier drafts left ambiguity:
+  - A core-only integer rule let extension data carry `1e400`, or integers
+    beyond 2^53.
+  - A "finite double, integers in range" rule identified integers by
+    spelling. Integral values written as `9007199254740993.0` or
+    `9.007199254740993e15` escaped the range check. A binary64 parser
+    rounds them to `9007199254740992`, while an arbitrary-precision parser
+    keeps the original value. Two conformant consumers could then
+    interpret the same critical extension data differently.
 
-  Core members keep the stricter integer-only rule, because floating-point
-  values serialize differently across languages.
+  D1.2 removes the ambiguity at its source. In v0.1, every number token
+  in the whole document must be an integer spelling with no fraction or
+  exponent, no `-0`, and a value within ±(2^53 − 1). The token is checked
+  lexically, before any lossy conversion. Fractions, monetary values,
+  large integers and other exact-precision quantities are strings in the
+  owning specification's format.
+
+  This is deliberately stricter than JCS, and it costs little: no Phase 1A
+  requirement uses fractional numbers, and no protocol fields exist yet. A
+  future specification that needs, say, a confidence value must define a
+  string format for it.
 - **Remote schema references.** Resolving `$ref` over the network during
   validation would let documents trigger outbound requests. D1 requires
   offline, bundled schemas.
@@ -102,8 +112,8 @@ prose specifications normative.
 
 - Strict profile enforcement depends on implementations choosing strict
   parsers. Conformance test vectors must include duplicate keys, a
-  byte order mark, out-of-range integers, non-integer numbers and lone
-  surrogates.
+  byte order mark, lone surrogates, and the numeric regression tokens in
+  conformance cases S-02 to S-09.
 - OQ-27 must set concrete limits before any protocol is specified.
 
 ## OQ-2: Versioning and compatibility
@@ -166,9 +176,13 @@ Two further rules close remaining gaps:
   value space open and specified unknown-value handling. That handling must
   be decision-neutral or a rejection. Otherwise a new major version is
   required.
-- **Pre-1.0 (D2.6).** Unknown `0.x` minor versions are rejected unless the
-  specification explicitly declares them compatible. During `0.x`,
-  additions are not guaranteed to be decision-neutral.
+- **Pre-1.0 (D2.6).** A `0.x` document is accepted only by a consumer that
+  explicitly implements that exact `MAJOR.MINOR`. An earlier draft let a
+  specification declare two `0.x` minor versions compatible. Because D2.4
+  and D2.5 do not bind before `1.0`, that exception reopened a downgrade
+  path: a `0.2` consumer could accept a `0.3` document while ignoring a
+  restriction that `0.3` added. D2.6 now prohibits such declarations.
+  Independent per-protocol versioning (D2.1) is unaffected.
 - **Consistency (D2.2).** A document whose type URI and declared version
   disagree on the major version is rejected. Otherwise, a consumer could
   dispatch on one value while the document's author relied on the other.
@@ -196,7 +210,8 @@ Adopt **D2**:
 - a type URI that carries the major version, which must agree with the
   `MAJOR.MINOR` declared in the document,
 - unknown majors fail closed,
-- unknown `0.x` minors fail closed unless declared compatible,
+- `0.x` documents accepted only on an exact, explicitly implemented
+  `MAJOR.MINOR` match,
 - security-relevant changes are never ignorable.
 
 ### Residual risks and future work
@@ -352,12 +367,14 @@ Adopt **D3**:
 
 - **JCS limits.** JCS does not normalize Unicode, and it serializes numbers
   the way ECMAScript does (verified, author's repository). D1's integer-only
-  core numbers and ASCII identifiers remove the main sources of
-  cross-language divergence. Strings in content are digested as given;
+  numbers and ASCII identifiers remove the main sources of cross-language
+  divergence. Strings in content are digested as given;
   differently normalized strings are, correctly, different content.
-- **No algorithm, no match.** A digest reference with no acceptable
-  algorithm is treated as unverifiable. It is never a match. This prevents
-  downgrade to weak or unknown algorithms.
+- **No `sha256`, no reference.** A v0.1 digest reference without `sha256`
+  is invalid and rejected (D4.4). Because `sha256` is mandatory and always
+  accepted, a reference that carries only algorithms a consumer does not
+  accept is the same case. This prevents downgrade to weak or unknown
+  algorithms.
 - **A common anchor, plus all-of-accepted matching.** The in-toto
   `DigestSet` guidance treats two sets as matching if *any* acceptable entry
   matches (verified). Consider a malformed or malicious set holding the
@@ -497,8 +514,9 @@ Adopt **D5**.
 
 ### Residual risks and future work
 
-- The items listed under "Items to verify before acceptance" in the
-  standards matrix must be checked against primary sources.
+- The remaining verification items listed in the
+  [standards matrix](standards-matrix.md#remaining-verification-items)
+  must be resolved.
 - Each interoperability mapping (MCP, A2A, in-toto export) needs its own
   specification and tests before any compatibility claim is made.
 - The OpenTelemetry GenAI conventions are at Development stability

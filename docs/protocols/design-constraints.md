@@ -19,9 +19,10 @@ ADR. It must not quietly deviate.
   interprets any content.
 - **C2. Fail closed.** A consumer rejects a document, and records why, when
   any of the following holds:
-  - it is not valid under the JSON profile (D1.2), including any number,
-    anywhere in the document, that does not parse to a finite IEEE 754
-    double or is an integer outside ±(2^53 − 1),
+  - it is not valid under the JSON profile (D1.2). This includes any number
+    token, anywhere in the document, that is not an integer spelling within
+    ±(2^53 − 1), checked lexically before any lossy conversion. Fraction
+    parts, exponents and `-0` are all rejected,
   - it fails validation against its protocol's normative JSON Schema
     (D1.3),
   - it exceeds the resource limits (D1.4),
@@ -32,6 +33,10 @@ ADR. It must not quietly deviate.
     compatibility is declared (D2.6),
   - it lists a critical extension the consumer does not understand, or its
     critical list contains duplicate or non-ASCII identifiers (D3.4),
+  - its critical list names an identifier that is not present in its
+    extensions element (a dangling critical identifier; D3.4). This applies
+    even when the consumer understands that identifier, and it is a
+    cross-field check that ordinary schema validation may not catch,
   - it carries a known critical-class extension without listing it as
     critical (D3.6),
   - a digest reference it relies on lacks a `sha256` entry, or does not
@@ -48,9 +53,13 @@ ADR. It must not quietly deviate.
   major version (D2.5, D3.5).
 - **C4. Immutability, not indefinite retention.** A document referenced by
   digest is never modified while it is retained.
-  - Corrections, migrations and redactions are new documents that reference
-    their predecessors (D2.7). They never carry the original's digest or
-    any endorsement made over the original (D4.5).
+  - Corrections, migrations and redactions are new documents. A
+    transformed document **may, and should, reference its predecessor by
+    the predecessor's digest** (D2.7); that is how provenance is preserved.
+  - It **must not** use the predecessor's digest as its own content digest,
+    present itself under that digest, or reuse any endorsement made over
+    the predecessor (D4.5). Its own content digest is computed from its
+    own canonical form.
   - Whether a document is retained, deleted or tombstoned is decided by the
     retention and privacy policy (OQ-19). Deletion is never an in-place
     edit.

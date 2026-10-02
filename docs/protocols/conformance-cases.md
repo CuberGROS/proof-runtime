@@ -35,11 +35,15 @@
 | ID | Case | Expected result | Rule |
 |---|---|---|---|
 | S-01 | Document is valid JSON under the profile but fails its protocol's normative JSON Schema, for example by missing a required member | Reject | D1.3, C2 |
-| S-02 | Extension data contains the integer `9007199254740993` (greater than 2^53 − 1) | Invalid; reject | D1.2 |
-| S-03 | Extension data contains the number `1e400`, which overflows IEEE 754 double precision | Invalid; reject | D1.2 |
-| S-04 | Extension data contains a non-integer number within range, such as `0.5` | Accepted. It is canonicalized by JCS (D4.2), so its serialized form may change while its value does not. | D1.2 |
-| S-05 | A core member contains a non-integer number, such as `0.5` | Invalid; reject | D1.2 |
-| S-06 | An exact-precision quantity (for example, a monetary amount) is encoded as a JSON number in extension data | Specification defect in the extension: exact-precision quantities must be strings | D1.2 |
+| S-02 | Number token `9007199254740993` (integer spelling, above 2^53 − 1), in core or extension data | Invalid; reject. Detected lexically, before any binary64 conversion, which would round it to `9007199254740992`. | D1.2 |
+| S-03 | Number token `9007199254740993.0` (integral value with a fraction part) | Invalid; reject (fraction spelling) | D1.2 |
+| S-04 | Number token `9.007199254740993e15` (integral value with an exponent) | Invalid; reject (exponent spelling) | D1.2 |
+| S-05 | Number token `1e400` (overflows binary64) | Invalid; reject (exponent spelling) | D1.2 |
+| S-06 | Number token `0.5` | Invalid; reject. A fraction must be a string in its owning specification's format. | D1.2 |
+| S-07 | Number token `1e0` (integral value 1 with an exponent) | Invalid; reject (exponent spelling) | D1.2 |
+| S-08 | Number token `-0` | Invalid; reject (negative zero) | D1.2 |
+| S-09 | Number tokens `9007199254740991`, `-9007199254740991` and `0` | Accepted; each is a valid integer spelling within the safe range | D1.2 |
+| S-10 | An exact-precision quantity (for example, a monetary amount) is encoded as a JSON number in extension data | Non-conformant. Integral amounts within range parse but violate the string requirement; fractional amounts are already rejected (S-06). | D1.2 |
 
 ## Extensions (D3)
 
@@ -74,8 +78,8 @@ mitigation. For unaware consumers, this risk is unmitigated (D3.6).
 |---|---|---|---|
 | V-01 | Major in type identifier differs from `MAJOR` in the declared protocol version | Invalid; reject | D2.2 |
 | V-02 | Document major version not implemented by the consumer | Reject; no best-effort parsing | D2.3 |
-| V-03 | Protocol `0.x`: document `0.3`, consumer implements `0.2` only, no declared compatibility | Reject | D2.6 |
-| V-04 | Protocol `0.x`: document `0.3`, consumer implements `0.2`, and the specification explicitly declares `0.2` and `0.3` compatible | **Optional (MAY).** Process and reject both conform. If the consumer processes the document, it applies the declared compatibility. Not a mandatory acceptance test. | D2.6 |
+| V-03 | Protocol `0.x`: document `0.3`, consumer implements `0.2` only | Reject | D2.6 |
+| V-04 | Protocol `0.x`: a specification declares `0.2` and `0.3` compatible | Specification defect: `0.x` compatibility must not be declared. A consumer that implements only `0.2` rejects a `0.3` document regardless. | D2.6 |
 | V-05 | Protocol `≥1.0`: document `1.4`, consumer implements `1.2` | **Optional (MAY).** Process and reject both conform. If the consumer processes the document, it ignores unrecognized core members, which are decision-neutral by D2.5, and handles unknown values of open members as originally specified. Not a mandatory acceptance test. | D2.4, D2.5 |
 | V-06 | Protocol `≥1.0`: a minor revision introduces a core member that affects a decision | Specification defect: must be a major version or a critical extension | D2.5 |
 | V-07 | Malformed protocol version (not `MAJOR.MINOR`) | Invalid; reject | D2.2 |
@@ -92,7 +96,7 @@ mitigation. For unaware consumers, this risk is unmitigated (D3.6).
 | I-04 | Relay's parser rounds an extension number it cannot represent exactly, then re-serializes | Content digest differs. The relay was required to forward the original bytes or treat the output as a transformation. Presenting it with the original's digest is non-conformant. | D4.5 |
 | I-05 | A critical marker is removed after the original digest was recorded independently | Recomputed digest does not match the recorded digest; the document is unverifiable | D3.7, D4.5 |
 | I-06 | Migration or redaction produces a new document that is presented with the original's digest | Non-conformant. The new document needs its own digest and a reference to the original. | D2.7, D4.5 |
-| I-07 | Reference carries only digest algorithms the consumer does not accept | Unverifiable; never treated as matching | D4.4 |
+| I-07 | Reference carries only digest algorithms the consumer does not accept. Because `sha256` is mandatory and always accepted in v0.1, this means `sha256` is absent. | Invalid reference; reject (same outcome as I-12) | D4.4 |
 | I-08 | A v0.1 document or implementation claims to be signed, to have established authenticity, or to conform to DSSE or another signing envelope | Non-conformant claim | D4.6 |
 | I-09 | A digest set holds `sha256` of content A and `sha512` of content B (a producer error) | Producer violates D4.4. A consumer that verifies both entries matches neither A nor B, and rejects. A consumer that verifies only `sha256` resolves to A. **No conformant consumer resolves to B**, because the `sha256` anchor must always match. | D4.4 |
 | I-10 | A digest set holds `sha256` and `sha512`, both computed over the candidate content | Match | D4.4 |
